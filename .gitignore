@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/processed/*
+!data/processed/.gitkeep
+data/index/*
+!data/index/.gitkeep
+.ipynb_checkpoints/
+.vscode/
+.pytest_cache/
+

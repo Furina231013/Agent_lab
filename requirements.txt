@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+pypdf
+markdown
+beautifulsoup4
+pytest
+httpx
+
