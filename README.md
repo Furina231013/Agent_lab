@@ -4,8 +4,8 @@
 
 这个版本故意只做一条很短的链路:
 
-1. 从本地读取 `.txt` / `.md`
-2. 做简单字符切块
+1. 从本地读取 `.txt` / `.md` / `.pdf`
+2. 做“按段落优先 + 长段再切”的 chunk 切分
 3. 把 chunks 存成 `data/processed/` 下的 JSON
 4. 通过 FastAPI 提供最基础的健康检查、导入、检索接口
 
@@ -29,6 +29,9 @@
 - 不做复杂 Agent 框架
 
 这样做的目的，是先把“文件导入、文本处理、数据落盘、接口分层”这些最基础但最常见的后端能力跑通。
+
+版本记录见 [CHANGELOG.md](/Users/huyh/learning/agent_lab/agent-lab/CHANGELOG.md)。
+开发规范见 [DEVELOPMENT.md](/Users/huyh/learning/agent_lab/agent-lab/DEVELOPMENT.md)。
 
 ## 项目目录说明
 
@@ -128,6 +131,13 @@ curl http://127.0.0.1:8000/api/health
 先确保存在测试文件，例如项目内已经提供了:
 
 - `data/raw/demo.md`
+- `data/raw/demo.pdf`
+
+其中 `demo.pdf` 已经扩充到约 2000-3000 字级别，更适合练习长文导入和搜索预览。
+
+现在也支持导入本地 PDF，例如:
+
+- `data/raw/your-notes.pdf`
 
 请求示例:
 
@@ -135,6 +145,14 @@ curl http://127.0.0.1:8000/api/health
 curl -X POST http://127.0.0.1:8000/api/ingest \
   -H "Content-Type: application/json" \
   -d '{"path":"data/raw/demo.md"}'
+```
+
+也可以直接导入本地示例 PDF:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"path":"data/raw/demo.pdf"}'
 ```
 
 预期返回示例:
@@ -148,6 +166,7 @@ curl -X POST http://127.0.0.1:8000/api/ingest \
 ```
 
 导入成功后，会在 `data/processed/` 下看到一个 JSON 文件，里面保存了 chunk 数据和基础元信息。
+当前切分策略已经从“纯字符窗口”升级成“按段落优先，段落太长再按字符切，并保留 overlap”。
 
 ## 调用 `/api/search`
 
@@ -164,19 +183,31 @@ curl -X POST http://127.0.0.1:8000/api/search \
 ```json
 {
   "query": "FastAPI",
-  "total_hits": 1,
+  "total_hits": 3,
+  "returned_count": 3,
   "results": [
     {
-      "chunk_id": "data_raw_demo_md-0000-000000",
+      "rank": 1,
       "source": "data/raw/demo.md",
-      "text": "Agent Lab Demo ...",
-      "score": 1
+      "chunk_id": "data_raw_demo_md-0000-000000",
+      "score": 2,
+      "match_count": 2,
+      "match_term": "FastAPI",
+      "preview": "...FastAPI keeps the API layer small while the service layer stays reusable..."
     }
   ]
 }
 ```
 
-这个版本的检索非常朴素，只做关键词包含和简单计数打分。
+这个版本的检索仍然很朴素，只做关键词包含和简单计数打分。
+但接口返回已经更偏“给人读”而不是“给调试看”:
+
+- `total_hits`: 所有命中的结果数
+- `returned_count`: 当前因为 `top_k` 实际返回的条数
+- `rank`: 当前返回列表内的排序名次
+- `match_count`: 命中的次数
+- `match_term`: 实际命中的词
+- `preview`: 更短、更容易扫读的文本片段
 
 ## 命令行脚本
 
@@ -202,15 +233,30 @@ python scripts/ingest_demo.py
 pytest
 ```
 
-当前只提供了一个最小测试:
+当前已经提供这些基础测试:
 
 - `tests/test_health.py`
+- `tests/test_api_e2e.py`
+- `tests/test_loader.py`
+- `tests/test_chunker.py`
+- `tests/test_search.py`
+- `tests/test_text_utils.py`
 
-它的价值不在于覆盖率高，而在于先用最低成本保证这几个最基本的事实:
+它们的目标不是一次把覆盖率做高，而是先锁住最关键的学习链路:
 
 - 应用能导入
 - 路由能注册
 - `/api/health` 合同没有被意外破坏
+- 文件导入对常见失败场景有清晰反馈
+- chunk 策略的核心行为可验证
+- `/api/search` 的基础检索与排序行为可验证
+- `/api/ingest` 和 `/api/search` 的端到端 API 链路可验证
+
+推荐开发流程:
+
+- 先写测试，让新用例先红灯
+- 再实现或修改代码
+- 最后跑到全绿再继续重构
 
 ## 如何阅读这个项目
 

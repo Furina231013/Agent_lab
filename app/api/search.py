@@ -10,9 +10,10 @@ router = APIRouter(tags=["search"])
 
 @router.post("/search", response_model=SearchResponse)
 def search_documents(request: SearchRequest) -> SearchResponse:
-    results = search_chunks(query=request.query, top_k=request.top_k)
+    results, total_hits = search_chunks(query=request.query, top_k=request.top_k)
     return SearchResponse(
         query=request.query,
-        total_hits=len(results),
+        total_hits=total_hits,
+        returned_count=len(results),
         results=results,
     )

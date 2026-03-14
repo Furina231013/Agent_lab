@@ -16,7 +16,11 @@ class HealthResponse(BaseModel):
 
 
 class IngestRequest(BaseModel):
-    path: str = Field(..., min_length=1, description="Path to a local .txt or .md file")
+    path: str = Field(
+        ...,
+        min_length=1,
+        description="Path to a local .txt, .md, or .pdf file",
+    )
 
 
 class IngestResponse(BaseModel):
@@ -39,13 +43,17 @@ class SearchRequest(BaseModel):
 
 
 class SearchResult(BaseModel):
-    chunk_id: str
+    rank: int
     source: str
-    text: str
+    chunk_id: str
     score: int
+    match_count: int
+    match_term: str
+    preview: str
 
 
 class SearchResponse(BaseModel):
     query: str
     total_hits: int
+    returned_count: int
     results: list[SearchResult]

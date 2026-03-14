@@ -22,10 +22,26 @@ def _resolve_path(value: str) -> Path:
 
 
 def to_relative_path(path: Path) -> str:
-    try:
-        return path.resolve().relative_to(PROJECT_DIR).as_posix()
-    except ValueError:
-        return path.resolve().as_posix()
+    resolved_path = path.resolve()
+    candidate_roots: list[Path] = []
+
+    active_settings = globals().get("settings")
+    if active_settings is not None:
+        candidate_roots.append(active_settings.data_dir.parent.resolve())
+    candidate_roots.append(PROJECT_DIR.resolve())
+
+    unique_roots: list[Path] = []
+    for root in candidate_roots:
+        if root not in unique_roots:
+            unique_roots.append(root)
+
+    for root in unique_roots:
+        try:
+            return resolved_path.relative_to(root).as_posix()
+        except ValueError:
+            continue
+
+    return resolved_path.as_posix()
 
 
 class Settings(BaseModel):
