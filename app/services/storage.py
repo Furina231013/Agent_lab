@@ -34,6 +34,7 @@ def save_chunks(source: str, chunks: list[ChunkItem]) -> Path:
         "chunk_count": len(chunks),
         "chunk_size": settings.chunk_size,
         "chunk_overlap": settings.chunk_overlap,
+        "embedding_model": settings.embedding_model_name,
         "saved_at": datetime.now(timezone.utc).isoformat(),
         "chunks": jsonable_encoder(chunks),
     }
@@ -48,6 +49,7 @@ def save_ask_record(
     *,
     question: str,
     top_k: int,
+    mode: str,
     answer_payload: dict[str, object],
     total_hits: int,
     chunks: list[AskChunk],
@@ -57,6 +59,7 @@ def save_ask_record(
     payload = {
         "question": question,
         "top_k": top_k,
+        "mode": mode,
         "answer": answer_payload.get("answer", ""),
         "answer_mode": answer_payload.get("answer_mode", "placeholder"),
         "answer_status": answer_payload.get("answer_status", "disabled"),

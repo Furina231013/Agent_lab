@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, status
 from app.config import to_relative_path
 from app.schemas import IngestRequest, IngestResponse
 from app.services.chunker import chunk_text
+from app.services.embedder import attach_embeddings
 from app.services.loader import load_document
 from app.services.storage import save_chunks
 
@@ -21,11 +22,14 @@ def ingest_document(request: IngestRequest) -> IngestResponse:
     try:
         document = load_document(request.path)
         chunks = chunk_text(source=document.source, text=document.text)
+        chunks = attach_embeddings(chunks)
         output_path = save_chunks(source=document.source, chunks=chunks)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
 
     return IngestResponse(
         source=document.source,

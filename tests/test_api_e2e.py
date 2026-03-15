@@ -16,6 +16,14 @@ from app.config import settings
 from app.main import app
 
 
+@pytest.fixture(autouse=True)
+def stub_chunk_embeddings(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "app.api.ingest.attach_embeddings",
+        lambda chunks: chunks,
+    )
+
+
 @pytest.fixture
 def isolated_data_dirs(tmp_path: Path) -> tuple[Path, Path, Path]:
     data_dir = tmp_path / "data"
@@ -127,6 +135,7 @@ def test_search_endpoint_works_after_ingesting_multiple_documents_via_api(
     assert response.status_code == 200
     payload = response.json()
     assert payload["query"] == "FastAPI"
+    assert payload["mode"] == "keyword"
     assert payload["total_hits"] == 2
     assert payload["returned_count"] == 1
     assert len(payload["results"]) == 1

@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.4.2
+
+- 将默认 embedding 模型从 `sentence-transformers/all-MiniLM-L6-v2` 切换为更适合当前中文学习场景的 `BAAI/bge-small-zh-v1.5`
+- 新增配置测试，锁住这个默认值，避免后续无意间退回到英文向 baseline
+- README 补充模型切换后的重新 ingest 提醒，避免混用不同模型生成的向量
+
+## v0.4.1
+
+- 修复 `/api/ask` 在 `mode=vector` 下返回小数相似度时触发 schema 校验失败的问题
+- `AskChunk.score` 现在与关键词检索和向量检索共用 `float` 类型，避免 ask 接口把合法的 cosine score 误判为错误输入
+- 补强 ask 的向量模式测试，明确覆盖“小数分数也应返回 200”的场景
+
+## v0.4.0
+
+- 保留原有关键词检索作为 baseline，同时新增第一版 embedding 检索
+- ingest 现在会为每个 chunk 生成 embedding，并和 chunk 一起保存到 `data/processed/` JSON 中
+- 新增 `app/services/embedder.py`，集中负责 embedding 模型加载与向量生成
+- `/api/search` 和 `/api/ask` 现在支持 `mode=keyword` / `mode=vector` 切换
+- 新增向量检索测试与 embedder 测试，确保 embedding 生成和 cosine 排序行为可验证
+
 ## v0.3.3
 
 - `/api/ask` 现在会把每次问答结果落成 JSON，方便离线查看本地模型的原始输出

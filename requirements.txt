@@ -7,4 +7,6 @@ markdown
 beautifulsoup4
 pytest
 httpx
-
+sentence-transformers
+scikit-learn
+numpy

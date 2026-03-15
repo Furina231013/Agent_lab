@@ -54,6 +54,8 @@ class Settings(BaseModel):
     ask_log_dir: Path
     chunk_size: int
     chunk_overlap: int
+    embedding_model_name: str
+    embedding_device: str
     ask_provider: str
     ask_system_prompt: str
     lm_studio_base_url: str
@@ -86,6 +88,11 @@ class Settings(BaseModel):
             ),
             chunk_size=int(os.getenv("CHUNK_SIZE", "500")),
             chunk_overlap=int(os.getenv("CHUNK_OVERLAP", "50")),
+            embedding_model_name=os.getenv(
+                "EMBEDDING_MODEL_NAME",
+                "BAAI/bge-small-zh-v1.5",
+            ).strip(),
+            embedding_device=os.getenv("EMBEDDING_DEVICE", "cpu").strip(),
             ask_provider=ask_provider,
             ask_system_prompt=os.getenv(
                 "ASK_SYSTEM_PROMPT",

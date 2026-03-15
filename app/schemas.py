@@ -37,18 +37,20 @@ class ChunkItem(BaseModel):
     text: str
     start_index: int
     end_index: int
+    embedding: Optional[list[float]] = None
 
 
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Keyword or short phrase to search")
     top_k: int = Field(default=5, gt=0, le=20)
+    mode: str = Field(default="keyword", description="Search mode: keyword or vector")
 
 
 class SearchResult(BaseModel):
     rank: int
     source: str
     chunk_id: str
-    score: int
+    score: float
     match_count: int
     match_term: str
     preview: str
@@ -56,6 +58,7 @@ class SearchResult(BaseModel):
 
 class SearchResponse(BaseModel):
     query: str
+    mode: str
     total_hits: int
     returned_count: int
     results: list[SearchResult]
@@ -64,18 +67,23 @@ class SearchResponse(BaseModel):
 class AskRequest(BaseModel):
     question: str = Field(..., min_length=1, description="Question to retrieve context for")
     top_k: int = Field(default=3, gt=0, le=20)
+    mode: str = Field(default="keyword", description="Retrieval mode: keyword or vector")
 
 
 class AskChunk(BaseModel):
     rank: int
     source: str
     chunk_id: str
-    score: int
+    # Keyword mode often yields whole-number counts, while vector mode returns
+    # cosine similarity scores with fractional parts, so the API contract must
+    # accept both without a special-case schema.
+    score: float
     text: str
 
 
 class AskResponse(BaseModel):
     question: str
+    mode: str
     answer: str
     answer_mode: str
     answer_status: str

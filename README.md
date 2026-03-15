@@ -6,8 +6,8 @@
 
 1. 从本地读取 `.txt` / `.md` / `.pdf`
 2. 做“按段落优先 + 长段再切”的 chunk 切分
-3. 把 chunks 存成 `data/processed/` 下的 JSON
-4. 通过 FastAPI 提供健康检查、导入、检索和问答接口
+3. 为每个 chunk 生成 embedding，并和 chunk 一起存成 `data/processed/` 下的 JSON
+4. 通过 FastAPI 提供健康检查、导入、关键词检索、embedding 检索和问答接口
 
 它的重点不是“功能丰富”，而是让你先把这些工程问题看清楚:
 
@@ -61,10 +61,11 @@ agent-lab/
 - `app/config.py`: 统一读取 `.env`。后续迁移系统时，优先改配置而不是改业务代码。
 - `app/schemas.py`: 用 Pydantic 显式定义 API 输入输出结构。
 - `app/api/`: HTTP 层。负责路由、参数接收、错误码映射。
-- `app/services/`: 业务层。负责读文件、切块、保存、检索。
+- `app/services/`: 业务层。负责读文件、切块、embedding、保存、检索。
+- `app/services/embedder.py`: embedding 模型加载与向量生成，单独拆开是为了避免模型初始化散落到 ingest/search/ask 各处。
 - `app/utils/`: 小而通用的辅助函数，避免把重复规则散落在各处。
 - `data/raw/`: 原始文档目录。
-- `data/processed/`: 处理后的 chunk JSON 输出目录。
+- `data/processed/`: 处理后的 chunk JSON 输出目录，现在每个 chunk 也可以带上 embedding。
 - `data/index/`: 先预留，后面做索引或向量检索时可以接进来。
 - `data/index/ask_logs/`: `/api/ask` 的结果归档目录，方便直接查看本地模型原始输出。
 - `scripts/`: 不启动 Web 服务也能直接跑服务层，适合学习和调试。
@@ -99,6 +100,10 @@ source .venv/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
+
+第一次真正使用 embedding ingest 或 vector search 时，`sentence-transformers` 可能会在本地下载默认模型。
+当前默认模型是 `BAAI/bge-small-zh-v1.5`，因为这个项目现在以中文文档学习为主，它比英文向的 `all-MiniLM-L6-v2` 更适合作为本地中文检索基线。
+如果你切换了 embedding 模型，请先清理旧的 processed JSON 再重新 ingest；不同模型生成的向量不能直接混用。
 
 ## 运行服务
 
@@ -169,6 +174,20 @@ curl -X POST http://127.0.0.1:8000/api/ingest \
 导入成功后，会在 `data/processed/` 下看到一个 JSON 文件，里面保存了 chunk 数据和基础元信息。
 当前切分策略已经从“纯字符窗口”升级成“按段落优先，段落太长再按字符切，并保留 overlap”。
 现在还会尽量贴近句子标点来决定 chunk 的起止位置，避免很多 chunk 以半句话开头。
+这一版还会在 ingest 阶段同步为每个 chunk 生成 embedding，并直接把向量一起落到同一个 JSON 中。
+
+## Embedding 检索简介
+
+现在项目里同时保留两种检索方式:
+
+- `keyword`: 原有的关键词包含/计数检索，适合做 baseline，也最容易调试
+- `vector`: 新增的 embedding 检索，适合处理“字面不完全相同，但语义接近”的查询
+
+为什么第一版先同时保留两种:
+
+- 关键词检索是最透明的基线，方便你判断 embedding 检索到底有没有带来增量价值
+- embedding 检索是更接近真实 RAG 的路径，但它引入了模型、向量和相似度计算，排错成本更高
+- 两种模式都保留，后面迁移到 Ubuntu、FAISS 或向量数据库时更容易逐层验证
 
 ## 调用 `/api/search`
 
@@ -177,7 +196,7 @@ curl -X POST http://127.0.0.1:8000/api/ingest \
 ```bash
 curl -X POST http://127.0.0.1:8000/api/search \
   -H "Content-Type: application/json" \
-  -d '{"query":"FastAPI","top_k":5}'
+  -d '{"query":"FastAPI","top_k":5,"mode":"keyword"}'
 ```
 
 预期返回示例:
@@ -185,6 +204,7 @@ curl -X POST http://127.0.0.1:8000/api/search \
 ```json
 {
   "query": "FastAPI",
+  "mode": "keyword",
   "total_hits": 3,
   "returned_count": 3,
   "results": [
@@ -201,8 +221,22 @@ curl -X POST http://127.0.0.1:8000/api/search \
 }
 ```
 
-这个版本的检索仍然很朴素，只做关键词包含和简单计数打分。
-但接口返回已经更偏“给人读”而不是“给调试看”:
+如果你想试 embedding 检索，可以把 `mode` 切到 `vector`:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/search \
+  -H "Content-Type: application/json" \
+  -d '{"query":"Which module loads local files?","top_k":3,"mode":"vector"}'
+```
+
+这一版的 `vector` 检索会:
+
+- 对 query 生成 embedding
+- 读取 `data/processed/*.json` 中已保存的 chunk embedding
+- 用 cosine similarity 做排序
+- 跳过还没有 embedding 的旧 chunk
+
+接口返回已经更偏“给人读”而不是“给调试看”:
 
 - `total_hits`: 所有命中的结果数
 - `returned_count`: 当前因为 `top_k` 实际返回的条数
@@ -221,7 +255,7 @@ curl -X POST http://127.0.0.1:8000/api/search \
 ```bash
 curl -X POST http://127.0.0.1:8000/api/ask \
   -H "Content-Type: application/json" \
-  -d '{"question":"FastAPI","top_k":3}'
+  -d '{"question":"FastAPI","top_k":3,"mode":"keyword"}'
 ```
 
 预期返回示例:
@@ -229,6 +263,7 @@ curl -X POST http://127.0.0.1:8000/api/ask \
 ```json
 {
   "question": "FastAPI",
+  "mode": "keyword",
   "answer": "Placeholder answer: no real model is connected yet. Review the retrieved chunks below.",
   "answer_mode": "placeholder",
   "answer_status": "disabled",
@@ -264,6 +299,20 @@ curl -X POST http://127.0.0.1:8000/api/ask \
 
 这样做的原因是，你现在还不一定会启动模型，但依然可以先把 ask 链路、返回结构和调试方式看明白。
 另外，即使模型返回了很长的原始输出，你也可以直接打开保存下来的 JSON 慢慢看。
+
+如果你想让问答先走 embedding 检索，再把命中的 chunks 交给现有大模型回答，可以这样调:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Which service loads local files?","top_k":3,"mode":"vector"}'
+```
+
+这里故意让 `/api/search` 和 `/api/ask` 都支持 `mode` 切换，原因是:
+
+- 你可以先用 `/api/search` 单独观察召回质量
+- 再决定 `/api/ask` 到底喂给模型的是关键词检索结果，还是 embedding 检索结果
+- 以后迁移到本地模型服务、Ubuntu 或向量数据库时，不需要改 API 形状，只需要替换 mode 背后的实现
 
 ## 配置本地 LM Studio
 
@@ -333,6 +382,19 @@ curl -X POST http://127.0.0.1:8000/api/ask \
 }
 ```
 
+## 关键词检索和 Embedding 检索的区别
+
+- `keyword` 更像字符串匹配。优点是结果可解释、调试简单、没有额外模型依赖。缺点是只要字面差一点，召回就可能掉得很明显。
+- `vector` 更像语义匹配。优点是“表述不一样但意思接近”时更容易召回。缺点是需要 embedding 模型，并且第一版 JSON 扫描在数据量变大后会变慢。
+- 对学习来说，两者并存很有价值。你可以先用 `keyword` 建立直觉，再用 `vector` 感受语义检索到底改善了什么。
+
+## 当前 embedding 方案的局限性
+
+- 当前 embedding 直接跟 chunk 一起保存在 `data/processed/*.json` 中，便于理解，但不适合大规模数据。
+- 当前 `vector_search` 仍然是全量扫描 JSON，再逐条算 cosine similarity，数据一多就会慢。
+- 默认的 `all-MiniLM-L6-v2` 更适合作为轻量英文实验模型。如果你的文档和查询以中文为主，后面可以考虑换成更适合中文或多语场景的 embedding 模型。
+- 旧的 processed JSON 里如果没有 embedding，`vector` 模式会自动跳过这些 chunk，所以老数据最好重新 ingest 一次。
+
 ## 命令行脚本
 
 如果你想先不看 FastAPI，只学习服务层，可以直接运行脚本。
@@ -362,6 +424,7 @@ pytest
 - `tests/test_health.py`
 - `tests/test_api_e2e.py`
 - `tests/test_ask.py`
+- `tests/test_embedder.py`
 - `tests/test_loader.py`
 - `tests/test_chunker.py`
 - `tests/test_search.py`
@@ -449,8 +512,8 @@ pytest
 
 未来你接模型时，通常新增或替换的是这些能力:
 
-- 把 `searcher.py` 的关键词检索换成 embedding + 向量检索
-- 在 `storage.py` 旁边新增真正的索引层或向量库适配层
+- 保留当前的 `keyword` / `vector` mode，但把 `vector_search` 从 JSON 扫描换成真正的索引层
+- 在 `storage.py` 旁边新增真正的向量库适配层，例如 FAISS、Chroma 或别的本地索引方案
 - 在 API 之上新增问答接口，例如 `/api/ask`
 - 在 service 层继续增强 prompt 组装、模型调用、工具调用
 - 再往上才是多步 Agent 编排
@@ -514,10 +577,11 @@ pytest
 最自然的升级路径通常是:
 
 1. 保留现有 ingest 流程
-2. 把 `searcher.py` 升级成 embedding 检索
-3. 在现有 `/api/ask` 基础上继续打磨 prompt 和答案合成
-4. 把当前预留的本地 LM Studio 接入点替换成更稳定的模型调用链
-5. 最后再考虑多工具、多步骤的 Agent 行为
+2. 先从当前 JSON + cosine similarity 版 embedding 检索出发
+3. 再把 `vector_search` 平滑迁移到 FAISS 或别的向量数据库
+4. 在现有 `/api/ask` 基础上继续打磨 prompt 和答案合成
+5. 把当前预留的本地 LM Studio 接入点替换成更稳定的模型调用链
+6. 最后再考虑多工具、多步骤的 Agent 行为
 
 建议不要一开始就跳到“复杂 Agent 框架”，因为你会更难判断问题到底出在:
 

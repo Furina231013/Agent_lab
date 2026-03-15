@@ -73,8 +73,9 @@ def _placeholder_payload(
 def ask_question(
     question: str,
     top_k: int = 3,
+    mode: str = "keyword",
 ) -> tuple[list[AskChunk], list[str], int, dict[str, Optional[str]], str]:
-    search_results, total_hits = search_chunks(query=question, top_k=top_k)
+    search_results, total_hits = search_chunks(query=question, top_k=top_k, mode=mode)
     selected_keys = {(result.source, result.chunk_id) for result in search_results}
     chunk_lookup = _load_chunk_text_lookup(selected_keys)
 
@@ -123,6 +124,7 @@ def ask_question(
     output_path = save_ask_record(
         question=question,
         top_k=top_k,
+        mode=mode,
         answer_payload=answer_payload,
         total_hits=total_hits,
         chunks=ask_chunks,
