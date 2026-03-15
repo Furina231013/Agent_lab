@@ -7,7 +7,7 @@
 1. 从本地读取 `.txt` / `.md` / `.pdf`
 2. 做“按段落优先 + 长段再切”的 chunk 切分
 3. 把 chunks 存成 `data/processed/` 下的 JSON
-4. 通过 FastAPI 提供最基础的健康检查、导入、检索接口
+4. 通过 FastAPI 提供健康检查、导入、检索和问答接口
 
 它的重点不是“功能丰富”，而是让你先把这些工程问题看清楚:
 
@@ -66,6 +66,7 @@ agent-lab/
 - `data/raw/`: 原始文档目录。
 - `data/processed/`: 处理后的 chunk JSON 输出目录。
 - `data/index/`: 先预留，后面做索引或向量检索时可以接进来。
+- `data/index/ask_logs/`: `/api/ask` 的结果归档目录，方便直接查看本地模型原始输出。
 - `scripts/`: 不启动 Web 服务也能直接跑服务层，适合学习和调试。
 - `tests/`: 最小自动化测试。
 - `notebooks/`: 以后做实验和临时探索的地方。
@@ -167,6 +168,7 @@ curl -X POST http://127.0.0.1:8000/api/ingest \
 
 导入成功后，会在 `data/processed/` 下看到一个 JSON 文件，里面保存了 chunk 数据和基础元信息。
 当前切分策略已经从“纯字符窗口”升级成“按段落优先，段落太长再按字符切，并保留 overlap”。
+现在还会尽量贴近句子标点来决定 chunk 的起止位置，避免很多 chunk 以半句话开头。
 
 ## 调用 `/api/search`
 
@@ -209,6 +211,128 @@ curl -X POST http://127.0.0.1:8000/api/search \
 - `match_term`: 实际命中的词
 - `preview`: 更短、更容易扫读的文本片段
 
+## 调用 `/api/ask`
+
+这一版的 `ask` 先走“问题 -> 检索 -> 返回上下文”这条链路。
+默认仍然返回 placeholder answer，但现在已经预留好了本地 LM Studio 的接入口。
+
+请求示例:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question":"FastAPI","top_k":3}'
+```
+
+预期返回示例:
+
+```json
+{
+  "question": "FastAPI",
+  "answer": "Placeholder answer: no real model is connected yet. Review the retrieved chunks below.",
+  "answer_mode": "placeholder",
+  "answer_status": "disabled",
+  "answer_note": "Set ASK_PROVIDER=lm_studio and configure LM_STUDIO_MODEL to enable local generation.",
+  "provider": "placeholder",
+  "model": null,
+  "total_hits": 2,
+  "returned_count": 2,
+  "output_path": "data/index/ask_logs/20260315T103000Z_FastAPI.json",
+  "chunks": [
+    {
+      "rank": 1,
+      "source": "data/raw/demo.pdf",
+      "chunk_id": "data_raw_demo_pdf-0005-001939",
+      "score": 1,
+      "text": "..."
+    }
+  ],
+  "sources": [
+    "data/raw/demo.pdf"
+  ]
+}
+```
+
+返回字段里新增了这些状态信息:
+
+- `answer_mode`: 当前 answer 是 placeholder 还是真的来自本地模型
+- `answer_status`: 当前是禁用、未配置、未命中上下文、调用成功还是本地服务不可达
+- `answer_note`: 给出当前状态的简短解释，方便调试
+- `provider`: 当前使用的是 `placeholder` 还是 `lm_studio`
+- `model`: 当前尝试使用的本地模型名
+- `output_path`: 这次 ask 结果保存到本地 JSON 的位置
+
+这样做的原因是，你现在还不一定会启动模型，但依然可以先把 ask 链路、返回结构和调试方式看明白。
+另外，即使模型返回了很长的原始输出，你也可以直接打开保存下来的 JSON 慢慢看。
+
+## 配置本地 LM Studio
+
+如果你暂时不启动本地模型，不需要改任何东西，默认就是:
+
+```env
+ASK_PROVIDER=placeholder
+```
+
+以后你准备把 `/api/ask` 切到本地 LM Studio 时，再改 `.env`:
+
+```env
+ASK_PROVIDER=lm_studio
+LM_STUDIO_BASE_URL=http://127.0.0.1:1234/v1
+LM_STUDIO_MODEL=your-loaded-model
+LM_STUDIO_TIMEOUT_SECONDS=120
+ASK_LOG_DIR=./data/index/ask_logs
+```
+
+建议按这个顺序配置:
+
+1. 在 LM Studio 里加载一个本地模型，并打开本地 API 服务
+2. 把 `.env` 里的 `ASK_PROVIDER` 改成 `lm_studio`
+3. 把 `LM_STUDIO_MODEL` 改成 LM Studio 当前已加载模型的 identifier
+4. 重启 `uvicorn app.main:app --reload`
+5. 再次调用 `/api/ask`
+
+如果你还没启动 LM Studio，或者模型名没配对，`/api/ask` 不会直接报 500。
+它会继续返回检索到的 chunks，同时在 `answer_status` 和 `answer_note` 里告诉你当前卡在哪一步。
+
+如果本地模型比较大、首次生成比较慢，建议把 `LM_STUDIO_TIMEOUT_SECONDS` 设得更宽松一些，例如 `120`。
+这样即使你的 Mac 首次出字较慢，也不容易被误判成请求失败。
+
+配置完成后，你可以继续用原来的调用方式:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question":"FastAPI","top_k":3}'
+```
+
+如果本地模型真的可用，返回会更像这样:
+
+```json
+{
+  "question": "FastAPI",
+  "answer": "FastAPI keeps the HTTP layer small while services stay reusable.",
+  "answer_mode": "lm_studio",
+  "answer_status": "generated",
+  "answer_note": "Answered by local LM Studio model.",
+  "provider": "lm_studio",
+  "model": "your-loaded-model",
+  "total_hits": 2,
+  "returned_count": 2,
+  "chunks": [
+    {
+      "rank": 1,
+      "source": "data/raw/demo.pdf",
+      "chunk_id": "data_raw_demo_pdf-0005-001939",
+      "score": 1,
+      "text": "..."
+    }
+  ],
+  "sources": [
+    "data/raw/demo.pdf"
+  ]
+}
+```
+
 ## 命令行脚本
 
 如果你想先不看 FastAPI，只学习服务层，可以直接运行脚本。
@@ -237,6 +361,7 @@ pytest
 
 - `tests/test_health.py`
 - `tests/test_api_e2e.py`
+- `tests/test_ask.py`
 - `tests/test_loader.py`
 - `tests/test_chunker.py`
 - `tests/test_search.py`
@@ -250,6 +375,7 @@ pytest
 - 文件导入对常见失败场景有清晰反馈
 - chunk 策略的核心行为可验证
 - `/api/search` 的基础检索与排序行为可验证
+- `/api/ask` 在 placeholder 和 LM Studio 两种模式下的返回契约可验证
 - `/api/ingest` 和 `/api/search` 的端到端 API 链路可验证
 
 推荐开发流程:
@@ -326,7 +452,7 @@ pytest
 - 把 `searcher.py` 的关键词检索换成 embedding + 向量检索
 - 在 `storage.py` 旁边新增真正的索引层或向量库适配层
 - 在 API 之上新增问答接口，例如 `/api/ask`
-- 在 service 层新增 prompt 组装、模型调用、工具调用
+- 在 service 层继续增强 prompt 组装、模型调用、工具调用
 - 再往上才是多步 Agent 编排
 
 也就是说，模型通常不是第一层，而是建立在这些基础层之上的。
@@ -389,8 +515,8 @@ pytest
 
 1. 保留现有 ingest 流程
 2. 把 `searcher.py` 升级成 embedding 检索
-3. 增加一个问答 service，把“问题 + 检索结果”拼成 prompt
-4. 再接入本地模型或云模型
+3. 在现有 `/api/ask` 基础上继续打磨 prompt 和答案合成
+4. 把当前预留的本地 LM Studio 接入点替换成更稳定的模型调用链
 5. 最后再考虑多工具、多步骤的 Agent 行为
 
 建议不要一开始就跳到“复杂 Agent 框架”，因为你会更难判断问题到底出在:

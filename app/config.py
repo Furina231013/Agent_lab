@@ -51,11 +51,27 @@ class Settings(BaseModel):
     raw_dir: Path
     processed_dir: Path
     index_dir: Path
+    ask_log_dir: Path
     chunk_size: int
     chunk_overlap: int
+    ask_provider: str
+    ask_system_prompt: str
+    lm_studio_base_url: str
+    lm_studio_model: str
+    lm_studio_timeout_seconds: int
 
     @classmethod
     def from_env(cls) -> "Settings":
+        ask_provider = os.getenv("ASK_PROVIDER", "placeholder").strip().lower()
+        lm_studio_base_url = os.getenv(
+            "LM_STUDIO_BASE_URL",
+            "http://127.0.0.1:1234/v1",
+        ).strip()
+        if lm_studio_base_url.endswith("/"):
+            lm_studio_base_url = lm_studio_base_url.rstrip("/")
+        if not lm_studio_base_url.endswith("/v1"):
+            lm_studio_base_url = f"{lm_studio_base_url}/v1"
+
         settings = cls(
             app_name=os.getenv("APP_NAME", "agent-lab"),
             app_env=os.getenv("APP_ENV", "dev"),
@@ -65,8 +81,21 @@ class Settings(BaseModel):
                 os.getenv("PROCESSED_DIR", "./data/processed")
             ),
             index_dir=_resolve_path(os.getenv("INDEX_DIR", "./data/index")),
+            ask_log_dir=_resolve_path(
+                os.getenv("ASK_LOG_DIR", "./data/index/ask_logs")
+            ),
             chunk_size=int(os.getenv("CHUNK_SIZE", "500")),
             chunk_overlap=int(os.getenv("CHUNK_OVERLAP", "50")),
+            ask_provider=ask_provider,
+            ask_system_prompt=os.getenv(
+                "ASK_SYSTEM_PROMPT",
+                "You are a careful local RAG assistant. Answer with the retrieved context only, and say when the context is insufficient.",
+            ),
+            lm_studio_base_url=lm_studio_base_url,
+            lm_studio_model=os.getenv("LM_STUDIO_MODEL", "").strip(),
+            lm_studio_timeout_seconds=int(
+                os.getenv("LM_STUDIO_TIMEOUT_SECONDS", "30")
+            ),
         )
         if settings.chunk_size <= 0:
             raise ValueError("CHUNK_SIZE must be greater than 0.")
@@ -74,10 +103,20 @@ class Settings(BaseModel):
             raise ValueError("CHUNK_OVERLAP cannot be negative.")
         if settings.chunk_overlap >= settings.chunk_size:
             raise ValueError("CHUNK_OVERLAP must be smaller than CHUNK_SIZE.")
+        if settings.ask_provider not in {"placeholder", "lm_studio"}:
+            raise ValueError("ASK_PROVIDER must be 'placeholder' or 'lm_studio'.")
+        if settings.lm_studio_timeout_seconds <= 0:
+            raise ValueError("LM_STUDIO_TIMEOUT_SECONDS must be greater than 0.")
         return settings
 
     def ensure_directories(self) -> "Settings":
-        for path in (self.data_dir, self.raw_dir, self.processed_dir, self.index_dir):
+        for path in (
+            self.data_dir,
+            self.raw_dir,
+            self.processed_dir,
+            self.index_dir,
+            self.ask_log_dir,
+        ):
             path.mkdir(parents=True, exist_ok=True)
         return self
 

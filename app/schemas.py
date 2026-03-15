@@ -6,6 +6,8 @@ what the HTTP layer promises even before the internals become more complex.
 
 from __future__ import annotations
 
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -57,3 +59,31 @@ class SearchResponse(BaseModel):
     total_hits: int
     returned_count: int
     results: list[SearchResult]
+
+
+class AskRequest(BaseModel):
+    question: str = Field(..., min_length=1, description="Question to retrieve context for")
+    top_k: int = Field(default=3, gt=0, le=20)
+
+
+class AskChunk(BaseModel):
+    rank: int
+    source: str
+    chunk_id: str
+    score: int
+    text: str
+
+
+class AskResponse(BaseModel):
+    question: str
+    answer: str
+    answer_mode: str
+    answer_status: str
+    answer_note: Optional[str] = None
+    provider: str
+    model: Optional[str] = None
+    total_hits: int
+    returned_count: int
+    output_path: str
+    chunks: list[AskChunk]
+    sources: list[str]

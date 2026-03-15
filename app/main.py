@@ -6,20 +6,21 @@ first file new readers usually open.
 
 from fastapi import FastAPI
 
-from app.api import health, ingest, search
+from app.api import ask, health, ingest, search
 from app.config import settings
 
 
 def create_app() -> FastAPI:
     application = FastAPI(
         title=settings.app_name,
-        version="0.2.4",
+        version="0.3.3",
         docs_url="/docs",
         redoc_url="/redoc",
     )
     application.include_router(health.router, prefix="/api")
     application.include_router(ingest.router, prefix="/api")
     application.include_router(search.router, prefix="/api")
+    application.include_router(ask.router, prefix="/api")
     return application
 
 

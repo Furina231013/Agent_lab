@@ -42,3 +42,21 @@ def test_chunk_text_splits_long_paragraph_and_keeps_overlap(
     assert len(chunks) >= 2
     assert all(len(chunk.text) <= settings.chunk_size for chunk in chunks)
     assert chunks[1].start_index == chunks[0].end_index - settings.chunk_overlap
+
+
+def test_chunk_text_prefers_sentence_boundary_before_falling_back_to_raw_overlap(
+    restore_chunk_settings: None,
+) -> None:
+    settings.chunk_size = 100
+    settings.chunk_overlap = 20
+    paragraph_one = "Paragraph one is short."
+    paragraph_two = (
+        "Sentence one in paragraph two should still fit in the current chunk. "
+        "Sentence two should become the clean beginning of the next chunk."
+    )
+    text = f"{paragraph_one}\n\n{paragraph_two}"
+
+    chunks = chunk_text(source="sentences.txt", text=text)
+
+    assert chunks[0].text.endswith("current chunk.")
+    assert chunks[1].text.startswith("Sentence two")
