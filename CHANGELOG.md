@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.5.1
+
+- 将评测 `run.json` 精简成更适合人工标注的结构，只保留 `answer_preview`、`evidence` 和 `log_path`
+- 完整回答与完整 chunk 继续保存在 ask 日志里，人工打标签时默认不必再翻大段原文
+- 脚本提示和 README 已同步改为新的“先看预览，再按需打开 log”流程
+
+## v0.5.0
+
+- 新增最小人工评测闭环，支持用一份小评测集比较 `keyword`、`vector`、`direct_read` 三种模式
+- 新增 `app/services/evaluator.py` 和 `scripts/evaluate.py`，让评测运行、结果落盘和报告汇总都有固定入口
+- 每次评测会在隔离工作区重新 ingest 评测文档，避免污染日常 `data/processed/`
+- 评测结果 JSON 里为每题、每种模式预留了 `manual_review`，方便人工标注 `correct / incorrect / insufficient` 和 `error_type`
+- 新增 markdown 汇总报告，按模式统计标签分布和错误类型，并给出轻量的下一步建议
+- 附带一份 24 条的小评测集 `data/evals/small_eval_set.json`
+
 ## v0.4.2
 
 - 将默认 embedding 模型从 `sentence-transformers/all-MiniLM-L6-v2` 切换为更适合当前中文学习场景的 `BAAI/bge-small-zh-v1.5`

@@ -65,10 +65,11 @@ agent-lab/
 - `app/services/embedder.py`: embedding 模型加载与向量生成，单独拆开是为了避免模型初始化散落到 ingest/search/ask 各处。
 - `app/utils/`: 小而通用的辅助函数，避免把重复规则散落在各处。
 - `data/raw/`: 原始文档目录。
+- `data/evals/`: 小评测集目录，当前放着一份最小人工评测集。
 - `data/processed/`: 处理后的 chunk JSON 输出目录，现在每个 chunk 也可以带上 embedding。
 - `data/index/`: 先预留，后面做索引或向量检索时可以接进来。
 - `data/index/ask_logs/`: `/api/ask` 的结果归档目录，方便直接查看本地模型原始输出。
-- `scripts/`: 不启动 Web 服务也能直接跑服务层，适合学习和调试。
+- `scripts/`: 不启动 Web 服务也能直接跑服务层，适合学习和调试。现在也包含最小评测脚本 `scripts/evaluate.py`。
 - `tests/`: 最小自动化测试。
 - `notebooks/`: 以后做实验和临时探索的地方。
 
@@ -392,8 +393,104 @@ curl -X POST http://127.0.0.1:8000/api/ask \
 
 - 当前 embedding 直接跟 chunk 一起保存在 `data/processed/*.json` 中，便于理解，但不适合大规模数据。
 - 当前 `vector_search` 仍然是全量扫描 JSON，再逐条算 cosine similarity，数据一多就会慢。
-- 默认的 `all-MiniLM-L6-v2` 更适合作为轻量英文实验模型。如果你的文档和查询以中文为主，后面可以考虑换成更适合中文或多语场景的 embedding 模型。
+- 当前默认的 `BAAI/bge-small-zh-v1.5` 已经更适合中文学习场景，但它仍然只是第一版基线，不代表最终最优选择。
 - 旧的 processed JSON 里如果没有 embedding，`vector` 模式会自动跳过这些 chunk，所以老数据最好重新 ingest 一次。
+
+## 最小评测闭环
+
+项目现在附带了一套最小人工评测闭环，目的是帮助你判断:
+
+- `keyword + ask` 和 `vector + ask` 的差异到底落在哪一层
+- `direct_read` 这种诊断模式能不能给你一个更高的参考上界
+- 当前问题更像是检索、生成、引用还是数据本身
+
+默认小评测集在:
+
+```text
+data/evals/small_eval_set.json
+```
+
+这份数据集当前包含 24 条题，混合了:
+
+- 关键词就能命中的题
+- 需要语义改写理解的题
+- 应该明确回答“信息不足”的题
+
+### 运行评测
+
+```bash
+python scripts/evaluate.py run
+```
+
+也可以显式指定 `top_k` 和模式:
+
+```bash
+python scripts/evaluate.py run --top-k 3 --modes keyword vector direct_read
+```
+
+每次运行会:
+
+- 读取小评测集
+- 建立一个隔离的评测工作区
+- 在隔离工作区里重新 ingest 评测涉及到的源文档
+- 依次跑 `keyword`、`vector`、`direct_read`
+- 保存整次运行的 `run.json`
+- 生成一份初始 markdown 报告
+
+输出位置:
+
+- 评测结果 JSON: `data/index/eval_runs/<run_id>/run.json`
+- 评测隔离 chunk: `data/index/eval_runs/<run_id>/processed/`
+- 评测 ask 日志: `data/index/eval_runs/<run_id>/ask_logs/`
+- 汇总报告: `data/index/eval_reports/<run_id>.md`
+
+### 人工标注怎么填
+
+打开某次评测的 `run.json`，每道题、每种模式下面都会有一个:
+
+```json
+{
+  "label": "",
+  "error_type": "",
+  "notes": ""
+}
+```
+
+你可以手动填写:
+
+- `label`: `correct` / `incorrect` / `insufficient`
+- `error_type`: `检索错` / `生成错` / `引用错` / `数据问题`
+- `notes`: 一句你想保留的判断说明
+
+为了让人工标注更省眼力，`run.json` 现在是精简结构:
+
+- `answer_preview`: 答案预览
+- `evidence`: 最多前几个证据 chunk 的预览
+- `log_path`: 完整回答和完整 chunk 所在的 ask 日志
+
+也就是说，你先在 `run.json` 里快速打标签；只有当预览信息不够时，再打开 `log_path` 深看全文。
+
+### 刷新报告
+
+完成人工标注后，重新生成报告:
+
+```bash
+python scripts/evaluate.py report --run latest
+```
+
+报告会按模式汇总:
+
+- `correct / incorrect / insufficient` 数量
+- 已评审和未评审数量
+- 错误类型分布
+- 一个很轻量的下一步建议
+
+### 为什么要加 direct_read
+
+`direct_read` 不是最终产品模式，而是诊断模式。
+
+- 如果 `direct_read` 也答不好，问题往往不只在检索
+- 如果 `direct_read` 能答好，但 `keyword/vector` 答不好，问题更可能在召回链路
 
 ## 命令行脚本
 

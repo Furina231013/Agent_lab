@@ -1,0 +1,222 @@
+{
+  "name": "small-rag-eval-v1",
+  "description": "用于比较 keyword、vector、direct_read 三种模式的最小人工评测集。",
+  "cases": [
+    {
+      "id": "demo-pdf-001",
+      "question": "为什么学习本地 Agent 或 RAG 时，不建议一开始就把很多系统组件都接进来？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["避免同时引入太多变量", "故障更容易定位到具体层"],
+      "difficulty": "easy",
+      "notes": "基础概念题，偏全文总述。"
+    },
+    {
+      "id": "demo-pdf-002",
+      "question": "FastAPI 的入口文件为什么应该尽量保持薄？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["入口文件主要负责挂载", "不要把业务逻辑藏在入口层"],
+      "difficulty": "easy",
+      "notes": "关键词题。"
+    },
+    {
+      "id": "demo-pdf-003",
+      "question": "在这个项目里，API 层和 service 层各自应该负责什么？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["API 层处理 HTTP 参数和错误码", "service 层负责文档读取、chunk、存储、search 等业务逻辑"],
+      "difficulty": "easy",
+      "notes": "职责划分题。"
+    },
+    {
+      "id": "demo-pdf-004",
+      "question": "loader 现在支持哪些文档格式？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["txt", "md", "PDF"],
+      "difficulty": "easy",
+      "notes": "枚举型问题。"
+    },
+    {
+      "id": "demo-pdf-005",
+      "question": "如果遇到空 PDF、损坏 PDF 或不能提取文字的 PDF，系统应该怎么处理？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["给出明确错误", "不要静默失败"],
+      "difficulty": "medium",
+      "notes": "报错策略题。"
+    },
+    {
+      "id": "demo-pdf-006",
+      "question": "为什么文件格式兼容逻辑不应该散落在 API 层？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["应该收口到稳定的 service", "让边界更清晰也更易维护"],
+      "difficulty": "medium",
+      "notes": "语义改写题。"
+    },
+    {
+      "id": "demo-pdf-007",
+      "question": "为什么现在的 chunker 会优先按段落来切，而不是只按固定字符窗口硬切？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["大多数解释性文档按段落组织信息", "更接近人类阅读方式"],
+      "difficulty": "medium",
+      "notes": "段落优先。"
+    },
+    {
+      "id": "demo-pdf-008",
+      "question": "如果单个段落太长，这个项目会怎么处理？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["只有段落过长时", "才会在段落内部继续按字符长度拆开"],
+      "difficulty": "easy",
+      "notes": "切分策略细节。"
+    },
+    {
+      "id": "demo-pdf-009",
+      "question": "overlap 这层重叠为什么还要保留？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["边界信息重要", "减少跨 chunk 时上下文丢失"],
+      "difficulty": "easy",
+      "notes": "关键词 overlap。"
+    },
+    {
+      "id": "demo-pdf-010",
+      "question": "为什么第一版先把结果存成 JSON，而不是直接接数据库？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["JSON 肉眼可读", "调试成本低", "适合学习阶段"],
+      "difficulty": "easy",
+      "notes": "存储设计题。"
+    },
+    {
+      "id": "demo-pdf-011",
+      "question": "当前 search 层实际做的事情是什么？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["扫描 processed 目录里的 JSON", "读取 chunk 文本", "做关键词包含和简单计数打分"],
+      "difficulty": "medium",
+      "notes": "检索路径。"
+    },
+    {
+      "id": "demo-pdf-012",
+      "question": "search 返回 rank、match_count、match_term、preview 这些字段的价值是什么？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["帮助可读性", "帮助调试", "不用直接返回整段 chunk"],
+      "difficulty": "medium",
+      "notes": "返回结构题。"
+    },
+    {
+      "id": "demo-pdf-013",
+      "question": "如果以后把这个项目升级成真正的 RAG 系统，最自然的演进顺序是什么？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["先把关键词检索换成 embedding 检索", "再引入向量数据库或本地 index", "然后增加 ask", "最后才考虑模型和 Agent"],
+      "difficulty": "hard",
+      "notes": "演进路线题。"
+    },
+    {
+      "id": "demo-pdf-014",
+      "question": "为什么这个项目虽然功能很少，仍然值得认真搭骨架？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["先看懂基础模块", "引入模型后更容易定位问题属于哪一层"],
+      "difficulty": "medium",
+      "notes": "学习价值题。"
+    },
+    {
+      "id": "demo-pdf-015",
+      "question": "以后从 Mac 迁移到 Ubuntu 时，通常主要改动会落在哪一层？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["环境层", "Python 安装或虚拟环境命令", "系统服务托管方式", "文件路径"],
+      "difficulty": "medium",
+      "notes": "迁移题。"
+    },
+    {
+      "id": "demo-pdf-016",
+      "question": "为什么作者强调要珍惜这种可解释的小系统？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["能把每个中间步骤看清楚", "学习时更容易理解 preview、score、top_k 等行为"],
+      "difficulty": "medium",
+      "notes": "学习方法题。"
+    },
+    {
+      "id": "demo-pdf-017",
+      "question": "阅读这个项目的代码时，文档建议先按什么顺序看？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["先看 main.py", "再看 ingest.py", "再看 loader、chunker、storage", "最后回到 search.py 和 searcher.py"],
+      "difficulty": "medium",
+      "notes": "阅读顺序题。"
+    },
+    {
+      "id": "demo-pdf-018",
+      "question": "health、loader、chunker、search 这些测试各自主要在守护什么？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": ["health 保证最基本导入和启动", "loader 保证 PDF 支持和报错路径", "chunker 保证段落优先和 overlap", "search 保证 ranking、preview 和空结果"],
+      "difficulty": "hard",
+      "notes": "测试价值题。"
+    },
+    {
+      "id": "demo-pdf-019",
+      "question": "文档里有没有介绍 OAuth 权限系统应该怎么做？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": [],
+      "difficulty": "easy",
+      "notes": "应该回答信息不足。"
+    },
+    {
+      "id": "demo-pdf-020",
+      "question": "这份文档有没有给出数据库迁移脚本的具体写法？",
+      "source_paths": ["data/raw/demo.pdf"],
+      "expected_sources": ["data/raw/demo.pdf"],
+      "expected_answer_points": [],
+      "difficulty": "easy",
+      "notes": "应该回答信息不足。"
+    },
+    {
+      "id": "embed-001",
+      "question": "Loader 在这个演示文档里负责做什么？",
+      "source_paths": ["data/raw/embedding_demo.md"],
+      "expected_sources": ["data/raw/embedding_demo.md"],
+      "expected_answer_points": ["从磁盘读取本地文件", "把内容转成纯文本"],
+      "difficulty": "easy",
+      "notes": "embedding demo 基础题。"
+    },
+    {
+      "id": "embed-002",
+      "question": "Chunker 在这个演示里扮演什么角色？",
+      "source_paths": ["data/raw/embedding_demo.md"],
+      "expected_sources": ["data/raw/embedding_demo.md"],
+      "expected_answer_points": ["把长文本切成更小的 chunks", "让检索更容易管理"],
+      "difficulty": "easy",
+      "notes": "chunker 定义题。"
+    },
+    {
+      "id": "embed-003",
+      "question": "向量检索和只看精确关键词相比，差异点是什么？",
+      "source_paths": ["data/raw/embedding_demo.md"],
+      "expected_sources": ["data/raw/embedding_demo.md"],
+      "expected_answer_points": ["vector search 比较 embeddings", "不是只比较精确关键词"],
+      "difficulty": "medium",
+      "notes": "vector search 定义题。"
+    },
+    {
+      "id": "embed-004",
+      "question": "这个 embedding demo 里有没有讲 reranker 应该怎么接？",
+      "source_paths": ["data/raw/embedding_demo.md"],
+      "expected_sources": ["data/raw/embedding_demo.md"],
+      "expected_answer_points": [],
+      "difficulty": "easy",
+      "notes": "应该回答信息不足。"
+    }
+  ]
+}
