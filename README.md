@@ -139,8 +139,12 @@ curl http://127.0.0.1:8000/api/health
 
 - `data/raw/demo.md`
 - `data/raw/demo.pdf`
+- `data/raw/vector_demo.md`
 
-其中 `demo.pdf` 已经扩充到约 2000-3000 字级别，更适合练习长文导入和搜索预览。
+其中:
+
+- `demo.pdf` 已经扩充到约 2000-3000 字级别，更适合练习长文导入和搜索预览
+- `vector_demo.md` 是更短、更干净的中文样本文档，更适合先做 embedding / vector 检索的最小验证
 
 现在也支持导入本地 PDF，例如:
 
@@ -160,6 +164,14 @@ curl -X POST http://127.0.0.1:8000/api/ingest \
 curl -X POST http://127.0.0.1:8000/api/ingest \
   -H "Content-Type: application/json" \
   -d '{"path":"data/raw/demo.pdf"}'
+```
+
+如果你只想先验证向量检索链路，也可以先导入更小的中文样本:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"path":"data/raw/vector_demo.md"}'
 ```
 
 预期返回示例:
@@ -407,16 +419,46 @@ curl -X POST http://127.0.0.1:8000/api/ask \
 默认小评测集在:
 
 ```text
-data/evals/small_eval_set.json
+data/evals/test_eval_set.json
 ```
 
-这份数据集当前包含 24 条题，混合了:
+这份数据集当前包含 50 条题，全部围绕:
+
+- `data/raw/test.md`
+- `data/raw/evaluatetest.md` 里整理出的题目
+
+题型混合了:
 
 - 关键词就能命中的题
 - 需要语义改写理解的题
 - 应该明确回答“信息不足”的题
 
 ### 运行评测
+
+如果你先改了 `data/raw/evaluatetest.md`，先重新生成评测 JSON:
+
+```bash
+python scripts/build_eval_dataset.py
+```
+
+这个脚本会把:
+
+- `data/raw/evaluatetest.md`
+
+重新转换成:
+
+- `data/evals/test_eval_set.json`
+
+默认会把每道题都绑定到 `data/raw/test.md`。如果你以后换了目标文章，也可以显式指定:
+
+```bash
+python scripts/build_eval_dataset.py \
+  --markdown data/raw/evaluatetest.md \
+  --output data/evals/test_eval_set.json \
+  --source-document data/raw/test.md
+```
+
+然后再跑评测:
 
 ```bash
 python scripts/evaluate.py run
@@ -507,6 +549,8 @@ python scripts/reset_data.py
 ```bash
 python scripts/ingest_demo.py
 ```
+
+这个脚本现在默认读取 `data/raw/test.md`，方便你直接用新的评测目标文档做本地实验。
 
 这两个脚本复用了 `app/services/`，可以帮助你看清“HTTP 只是壳，业务逻辑应该能脱离 Web 单独运行”。
 

@@ -18,7 +18,7 @@ from app.services.storage import save_chunks
 
 
 def main() -> None:
-    document = load_document("data/raw/demo.md")
+    document = load_document("data/raw/test.md")
     chunks = chunk_text(source=document.source, text=document.text)
     output_path = save_chunks(source=document.source, chunks=chunks)
     print(f"source={document.source}")

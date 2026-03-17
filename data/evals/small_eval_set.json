@@ -184,36 +184,36 @@
     },
     {
       "id": "embed-001",
-      "question": "Loader 在这个演示文档里负责做什么？",
-      "source_paths": ["data/raw/embedding_demo.md"],
-      "expected_sources": ["data/raw/embedding_demo.md"],
+      "question": "Loader 在这个向量检索演示文档里负责做什么？",
+      "source_paths": ["data/raw/vector_demo.md"],
+      "expected_sources": ["data/raw/vector_demo.md"],
       "expected_answer_points": ["从磁盘读取本地文件", "把内容转成纯文本"],
       "difficulty": "easy",
-      "notes": "embedding demo 基础题。"
+      "notes": "vector demo 基础题。"
     },
     {
       "id": "embed-002",
       "question": "Chunker 在这个演示里扮演什么角色？",
-      "source_paths": ["data/raw/embedding_demo.md"],
-      "expected_sources": ["data/raw/embedding_demo.md"],
-      "expected_answer_points": ["把长文本切成更小的 chunks", "让检索更容易管理"],
+      "source_paths": ["data/raw/vector_demo.md"],
+      "expected_sources": ["data/raw/vector_demo.md"],
+      "expected_answer_points": ["把较长文本切成更小的片段", "让检索更容易管理上下文"],
       "difficulty": "easy",
       "notes": "chunker 定义题。"
     },
     {
       "id": "embed-003",
       "question": "向量检索和只看精确关键词相比，差异点是什么？",
-      "source_paths": ["data/raw/embedding_demo.md"],
-      "expected_sources": ["data/raw/embedding_demo.md"],
-      "expected_answer_points": ["vector search 比较 embeddings", "不是只比较精确关键词"],
+      "source_paths": ["data/raw/vector_demo.md"],
+      "expected_sources": ["data/raw/vector_demo.md"],
+      "expected_answer_points": ["比较 embedding 的语义相似度", "不是只比较完全相同的关键词"],
       "difficulty": "medium",
       "notes": "vector search 定义题。"
     },
     {
       "id": "embed-004",
-      "question": "这个 embedding demo 里有没有讲 reranker 应该怎么接？",
-      "source_paths": ["data/raw/embedding_demo.md"],
-      "expected_sources": ["data/raw/embedding_demo.md"],
+      "question": "这个向量检索演示文档里有没有讲 reranker 应该怎么接？",
+      "source_paths": ["data/raw/vector_demo.md"],
+      "expected_sources": ["data/raw/vector_demo.md"],
       "expected_answer_points": [],
       "difficulty": "easy",
       "notes": "应该回答信息不足。"

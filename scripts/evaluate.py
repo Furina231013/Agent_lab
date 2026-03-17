@@ -23,7 +23,7 @@ def _parse_args() -> argparse.Namespace:
     run_parser = subparsers.add_parser("run", help="Run evaluation and save a JSON result set.")
     run_parser.add_argument(
         "--dataset",
-        default="data/evals/small_eval_set.json",
+        default="data/evals/test_eval_set.json",
         help="Path to the evaluation dataset JSON file.",
     )
     run_parser.add_argument(

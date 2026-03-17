@@ -1,10 +1,29 @@
 # Changelog
 
+## v0.5.4
+
+- 新增 `scripts/build_eval_dataset.py`，可以一键把 `data/raw/evaluatetest.md` 重新生成成 `data/evals/test_eval_set.json`
+- 新增 `app/services/eval_dataset_builder.py`，把 markdown 解析和 JSON 生成逻辑单独收口，避免评测主流程直接依赖更脆弱的 markdown 结构
+- 生成器现在按题目块解析，不再强依赖每一题之间都写了标准 `---` 分隔，因此对手工维护的题库更稳
+
+## v0.5.3
+
+- `data/evals/test_eval_set.json` 已同步到 `data/raw/evaluatetest.md` 的最新内容，默认评测集现在包含 50 条题
+- 评测测试已改为检查 `test_eval_set.json` 与 `evaluatetest.md` 的题目数量一致，避免以后再次出现“markdown 已加题，但 JSON 还停留在旧数量”的不同步问题
+
+## v0.5.2
+
+- 新增默认评测集 `data/evals/test_eval_set.json`，将 `data/raw/evaluatetest.md` 中的 20 条问题转换成评测脚本可直接使用的 JSON
+- `python scripts/evaluate.py run` 现在默认会对 `data/raw/test.md` 跑这 20 条评测题，不再默认指向旧的 `small_eval_set.json`
+- `scripts/ingest_demo.py` 也已切换为默认读取 `data/raw/test.md`，让命令行演示和评测目标文档保持一致
+
 ## v0.5.1
 
 - 将评测 `run.json` 精简成更适合人工标注的结构，只保留 `answer_preview`、`evidence` 和 `log_path`
 - 完整回答与完整 chunk 继续保存在 ask 日志里，人工打标签时默认不必再翻大段原文
 - 脚本提示和 README 已同步改为新的“先看预览，再按需打开 log”流程
+- 将原本容易引起歧义的 `data/raw/embedding_demo.md` 重命名为 `data/raw/vector_demo.md`，并改成中文内容
+- 评测集和测试已同步切换到 `vector_demo.md`，并新增测试确保评测集里的 `source_paths` 不会再指向缺失文件
 
 ## v0.5.0
 

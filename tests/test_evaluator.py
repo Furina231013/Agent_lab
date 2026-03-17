@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import sys
 
 import pytest
 
@@ -120,8 +121,8 @@ def test_run_evaluation_writes_three_mode_results_with_manual_review_slots(
                     {
                         "id": "case-001",
                         "question": "Loader 做什么？",
-                        "source_paths": ["data/raw/embedding_demo.md"],
-                        "expected_sources": ["data/raw/embedding_demo.md"],
+                        "source_paths": ["data/raw/vector_demo.md"],
+                        "expected_sources": ["data/raw/vector_demo.md"],
                         "expected_answer_points": ["读取本地文件", "转成纯文本"],
                         "difficulty": "easy",
                         "notes": "最小评测用例",
@@ -135,14 +136,14 @@ def test_run_evaluation_writes_three_mode_results_with_manual_review_slots(
     )
 
     def fake_prepare(case_sources: list[str]) -> list[str]:
-        assert case_sources == ["data/raw/embedding_demo.md"]
+        assert case_sources == ["data/raw/vector_demo.md"]
         payload = {
-            "source": "data/raw/embedding_demo.md",
+            "source": "data/raw/vector_demo.md",
             "chunk_count": 1,
             "chunks": [
                 {
                     "chunk_id": "embed-0001",
-                    "source": "data/raw/embedding_demo.md",
+                    "source": "data/raw/vector_demo.md",
                     "text": "Loader reads local files from disk and turns them into plain text.",
                     "start_index": 0,
                     "end_index": 67,
@@ -162,13 +163,13 @@ def test_run_evaluation_writes_three_mode_results_with_manual_review_slots(
             [
                 AskChunk(
                     rank=1,
-                    source="data/raw/embedding_demo.md",
+                    source="data/raw/vector_demo.md",
                     chunk_id=f"{mode}-0001",
                     score=1.0,
                     text=long_chunk,
                 )
             ],
-            ["data/raw/embedding_demo.md"],
+            ["data/raw/vector_demo.md"],
             1,
             {
                 "answer": long_answer,
@@ -186,13 +187,13 @@ def test_run_evaluation_writes_three_mode_results_with_manual_review_slots(
             [
                 AskChunk(
                     rank=1,
-                    source="data/raw/embedding_demo.md",
+                    source="data/raw/vector_demo.md",
                     chunk_id="direct-0001",
                     score=1.0,
                     text="direct chunk " + ("z" * 220),
                 )
             ],
-            ["data/raw/embedding_demo.md"],
+            ["data/raw/vector_demo.md"],
             1,
             {
                 "answer": "direct answer " + ("q" * 280),
@@ -229,7 +230,7 @@ def test_run_evaluation_writes_three_mode_results_with_manual_review_slots(
     assert run_path.exists()
     assert saved_payload["dataset_name"] == "tiny-eval"
     assert saved_payload["top_k"] == 2
-    assert saved_payload["prepared_sources"] == ["data/raw/embedding_demo.md"]
+    assert saved_payload["prepared_sources"] == ["data/raw/vector_demo.md"]
     assert len(saved_payload["cases"]) == 1
     case_payload = saved_payload["cases"][0]
     assert case_payload["id"] == "case-001"
@@ -339,3 +340,70 @@ def test_write_eval_report_summarizes_manual_labels(
     assert report_path.exists()
     assert "keyword" in report_text
     assert "检索错" in report_text
+
+
+def test_small_eval_dataset_references_existing_source_files() -> None:
+    dataset_path = Path("/Users/huyh/learning/agent_lab/agent-lab/data/evals/small_eval_set.json")
+    payload = json.loads(dataset_path.read_text(encoding="utf-8"))
+
+    missing_sources = []
+    referenced_sources = []
+    for case in payload["cases"]:
+        for source_path in case["source_paths"]:
+            referenced_sources.append(source_path)
+            resolved_path = Path("/Users/huyh/learning/agent_lab/agent-lab") / source_path
+            if not resolved_path.exists():
+                missing_sources.append(source_path)
+
+    assert missing_sources == []
+    assert "data/raw/embedding_demo.md" not in referenced_sources
+
+
+def test_vector_demo_is_named_clearly_and_uses_chinese_content() -> None:
+    demo_path = Path("/Users/huyh/learning/agent_lab/agent-lab/data/raw/vector_demo.md")
+
+    assert demo_path.exists()
+    content = demo_path.read_text(encoding="utf-8")
+    assert "# 向量检索演示文档" in content
+    assert "向量检索" in content
+
+
+def test_evaluate_script_defaults_to_test_eval_dataset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sys, "argv", ["evaluate.py", "run"])
+
+    from scripts.evaluate import _parse_args
+
+    args = _parse_args()
+
+    assert args.dataset == "data/evals/test_eval_set.json"
+
+
+def test_test_eval_dataset_targets_test_md_with_fifty_cases() -> None:
+    dataset_path = Path("/Users/huyh/learning/agent_lab/agent-lab/data/evals/test_eval_set.json")
+    source_markdown_path = Path("/Users/huyh/learning/agent_lab/agent-lab/data/raw/evaluatetest.md")
+
+    assert dataset_path.exists()
+    assert source_markdown_path.exists()
+
+    payload = json.loads(dataset_path.read_text(encoding="utf-8"))
+    question_count = sum(
+        1
+        for line in source_markdown_path.read_text(encoding="utf-8").splitlines()
+        if line.startswith("## ")
+    )
+    assert question_count == 50
+    assert len(payload["cases"]) == 50
+    assert len(payload["cases"]) == question_count
+
+    for case in payload["cases"]:
+        assert case["source_paths"] == ["data/raw/test.md"]
+        assert case["expected_sources"] == ["data/raw/test.md"]
+
+
+def test_ingest_demo_uses_test_md() -> None:
+    script_path = Path("/Users/huyh/learning/agent_lab/agent-lab/scripts/ingest_demo.py")
+    script_text = script_path.read_text(encoding="utf-8")
+
+    assert 'load_document("data/raw/test.md")' in script_text
