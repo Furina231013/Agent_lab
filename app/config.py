@@ -96,7 +96,12 @@ class Settings(BaseModel):
             ask_provider=ask_provider,
             ask_system_prompt=os.getenv(
                 "ASK_SYSTEM_PROMPT",
-                "You are a careful local RAG assistant. Answer with the retrieved context only, and say when the context is insufficient.",
+                (
+                    "你是一个本地 RAG 助手。请始终使用简体中文回答。"
+                    "只根据检索到的上下文作答，不要补充常识，不要外推未明示规则。"
+                    "如果问题涉及计划版本、当前生效值、阈值或数值，请明确区分计划态与现态，并逐字复制关键数字。"
+                    "不要输出思维链、Thinking Process 或 <think> 标签。"
+                ),
             ),
             lm_studio_base_url=lm_studio_base_url,
             lm_studio_model=os.getenv("LM_STUDIO_MODEL", "").strip(),

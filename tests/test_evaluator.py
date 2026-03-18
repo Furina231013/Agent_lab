@@ -107,7 +107,7 @@ def test_answer_question_direct_read_limits_context_to_selected_sources(
     assert output_path.endswith(".json")
 
 
-def test_run_evaluation_writes_three_mode_results_with_manual_review_slots(
+def test_run_evaluation_writes_default_vector_and_direct_read_results_with_manual_review_slots(
     isolated_eval_settings: None,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -234,8 +234,8 @@ def test_run_evaluation_writes_three_mode_results_with_manual_review_slots(
     assert len(saved_payload["cases"]) == 1
     case_payload = saved_payload["cases"][0]
     assert case_payload["id"] == "case-001"
-    assert set(case_payload["modes"]) == {"keyword", "vector", "direct_read"}
-    assert case_payload["modes"]["keyword"]["manual_review"] == {
+    assert set(case_payload["modes"]) == {"vector", "direct_read"}
+    assert case_payload["modes"]["vector"]["manual_review"] == {
         "label": "",
         "error_type": "",
         "notes": "",
@@ -378,6 +378,7 @@ def test_evaluate_script_defaults_to_test_eval_dataset(
     args = _parse_args()
 
     assert args.dataset == "data/evals/test_eval_set.json"
+    assert args.modes == ["vector", "direct_read"]
 
 
 def test_test_eval_dataset_targets_test_md_with_fifty_cases() -> None:

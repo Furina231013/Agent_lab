@@ -24,7 +24,8 @@ from app.services.loader import load_document
 from app.services.storage import save_ask_record, save_chunks
 from app.utils.text import normalize_text
 
-DEFAULT_EVAL_MODES = ("keyword", "vector", "direct_read")
+DEFAULT_EVAL_MODES = ("vector", "direct_read")
+SUPPORTED_EVAL_MODES = ("keyword", "vector", "direct_read")
 EVAL_RUNS_DIRNAME = "eval_runs"
 EVAL_REPORTS_DIRNAME = "eval_reports"
 REVIEW_LABELS = ("correct", "incorrect", "insufficient")
@@ -252,7 +253,7 @@ def run_evaluation(
     modes: list[str] | None = None,
 ) -> Path:
     selected_modes = modes or list(DEFAULT_EVAL_MODES)
-    invalid_modes = [mode for mode in selected_modes if mode not in DEFAULT_EVAL_MODES]
+    invalid_modes = [mode for mode in selected_modes if mode not in SUPPORTED_EVAL_MODES]
     if invalid_modes:
         raise ValueError(
             "Unsupported evaluation mode(s): " + ", ".join(sorted(set(invalid_modes)))

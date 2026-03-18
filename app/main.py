@@ -13,7 +13,7 @@ from app.config import settings
 def create_app() -> FastAPI:
     application = FastAPI(
         title=settings.app_name,
-        version="0.5.4",
+        version="0.6.1",
         docs_url="/docs",
         redoc_url="/redoc",
     )

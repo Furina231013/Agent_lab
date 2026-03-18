@@ -16,7 +16,7 @@ from app.services.evaluator import latest_eval_run_path, run_evaluation, write_e
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run a small keyword/vector/direct_read evaluation loop."
+        description="Run a small vector/direct_read evaluation loop."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -30,13 +30,13 @@ def _parse_args() -> argparse.Namespace:
         "--top-k",
         type=int,
         default=3,
-        help="top_k passed to keyword/vector ask runs.",
+        help="top_k passed to vector ask runs.",
     )
     run_parser.add_argument(
         "--modes",
         nargs="+",
-        default=["keyword", "vector", "direct_read"],
-        help="Subset of modes to run. Default: keyword vector direct_read",
+        default=["vector", "direct_read"],
+        help="Subset of modes to run. Default: vector direct_read",
     )
 
     report_parser = subparsers.add_parser(

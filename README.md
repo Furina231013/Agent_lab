@@ -313,6 +313,25 @@ curl -X POST http://127.0.0.1:8000/api/ask \
 这样做的原因是，你现在还不一定会启动模型，但依然可以先把 ask 链路、返回结构和调试方式看明白。
 另外，即使模型返回了很长的原始输出，你也可以直接打开保存下来的 JSON 慢慢看。
 
+如果你已经接上本地 LM Studio，这一版还额外收紧了 ask 的输出约束：
+
+- 问答默认要求模型输出三行：`结论`、`依据`、`边界`
+- 对“当前是否生效”“计划版本”“阈值/数值/百分比”这类题，会更强调不要外推、不要把计划态答成现态、不要改写数字
+- 对 `Lookup / Explain` 分类题、`会不会 / 是否` 判定题、`数量 + 条件` 双问句、以及“表达方式”题，会追加题型级提示，减少答偏题型或只答半句
+- 如果模型第一版答案没有直接命中题型、前后自相矛盾，或写出了上下文里没有的数字，系统会自动做一次轻量纠偏重试
+- 这套纠偏现在更偏向代码校验，而不是继续堆很长的 prompt。例如会检查：并列题有没有两边都答到、范围外问题有没有明确写“未明示”、例外项有没有被错判成默认规则、题目里的关键数字有没有在答案里保留
+- 这层校验现在还会做两件更硬的事：一是把 `3.3 / 4.3` 这类章节号从数字比较里排除，避免误报；二是在冲突处理题里，如果来源要求固定提示语，答案必须把那句提示语完整带出来
+- 这一版还新增了 5 类更硬的剩余错校验：范围外问题不能从“未明示”直接跳到“不适用”；`420` 字符切分题必须同时回答“优先按段落边界处理”和“只有单段超过 420 才允许强制截断”；冲突处理题必须提醒“结合来源进行确认”；命中短段例外项时，结论极性必须和依据一致；题目里的关键数字不能被串改成别的数字
+- ask 结果保存前会清理 `<think>`、`Thinking Process` 之类的推理痕迹，只保留最终答案
+- 如果模型把 `结论 / 依据 / 边界` 挤成一行，保存前也会自动拆回三行，方便你直接读日志和评测结果
+
+这样设计不是为了把 prompt 变复杂，而是为了减少评测里常见的 4 类生成错：
+
+- 把计划版本误答成当前已生效
+- 把未明示范围答成确定规则
+- 把阈值数字抄错
+- 结论和后文自相矛盾
+
 如果你想让问答先走 embedding 检索，再把命中的 chunks 交给现有大模型回答，可以这样调:
 
 ```bash
@@ -372,7 +391,7 @@ curl -X POST http://127.0.0.1:8000/api/ask \
 ```json
 {
   "question": "FastAPI",
-  "answer": "FastAPI keeps the HTTP layer small while services stay reusable.",
+  "answer": "结论：FastAPI 相关代码强调入口层保持轻量。\n依据：文档说明 HTTP 层应尽量薄，service 层承载主要业务逻辑。\n边界：当前材料已明确。",
   "answer_mode": "lm_studio",
   "answer_status": "generated",
   "answer_note": "Answered by local LM Studio model.",
@@ -467,6 +486,13 @@ python scripts/evaluate.py run
 也可以显式指定 `top_k` 和模式:
 
 ```bash
+python scripts/evaluate.py run --top-k 3 --modes vector direct_read
+```
+
+现在默认评测只跑 `vector + direct_read`，不再把 `keyword` 带进默认批跑里，这样可以明显减少一次完整评测的耗时。
+如果你之后真的还想临时做一次三路对比，再显式传:
+
+```bash
 python scripts/evaluate.py run --top-k 3 --modes keyword vector direct_read
 ```
 
@@ -475,7 +501,7 @@ python scripts/evaluate.py run --top-k 3 --modes keyword vector direct_read
 - 读取小评测集
 - 建立一个隔离的评测工作区
 - 在隔离工作区里重新 ingest 评测涉及到的源文档
-- 依次跑 `keyword`、`vector`、`direct_read`
+- 默认依次跑 `vector`、`direct_read`
 - 保存整次运行的 `run.json`
 - 生成一份初始 markdown 报告
 
