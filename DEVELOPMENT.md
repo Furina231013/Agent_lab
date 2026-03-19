@@ -6,7 +6,25 @@
 
 ## Core Rule
 
-本仓库默认采用 TDD:
+本仓库默认区分两类开发:
+
+1. `deterministic code`
+2. `LLM behavior`
+
+前者默认采用 TDD；后者默认采用 eval-driven development。
+
+不要把所有工作都机械地套进 TDD。对确定性逻辑，TDD 能有效防回归；对本地模型回答质量、prompt 调整和检索问答表现，评测集与人工复核比“证明 mock 输出会被规则拦住”更重要。
+
+## Deterministic Code: TDD
+
+`deterministic code` 包括这类内容:
+
+- loader / chunker / searcher / storage / schema / config
+- API 输入输出、错误映射、状态码
+- 纯文本处理、路径处理、校验逻辑
+- 明确、可重复、输入输出稳定的 service 行为
+
+这类改动默认采用 TDD:
 
 1. 先写测试
 2. 先看到红灯
@@ -15,18 +33,45 @@
 
 如果没有先经历红灯，就不算完成了这轮 TDD。
 
+## LLM Behavior: Eval-Driven Development
+
+`LLM behavior` 包括这类内容:
+
+- prompt 调整
+- 本地模型回答风格
+- `vector` / `direct_read` 回答质量
+- 检索问答链路在真实题集上的表现
+
+这类改动默认采用评测驱动，而不是强行把每个现象都写成 mock 单元测试。
+
+推荐顺序:
+
+1. 明确想改善的错误类型或题集样本
+2. 运行评测脚本，生成新的 `run.json`
+3. 做人工复核，确认问题是否稳定复现
+4. 只把稳定、可程序化的错误下沉成代码校验或小型测试
+5. 再跑评测，对比前后结果
+
+判断一条 LLM 改动是否完成，优先看:
+
+- 评测集结果是否改善
+- 人工标注后的错题是否减少
+- 剩余错误是否变得更集中、更可解释
+
 ## Required Workflow
 
 每次开发默认遵循下面的顺序:
 
 1. 明确这次改动要验证的行为
-2. 先添加或修改测试，让测试表达这个行为
-3. 在不改实现的情况下先运行测试，确认失败
-4. 再修改实现代码
-5. 先回跑刚才失败的测试
-6. 再跑全量测试
-7. 如果需要，再做小幅重构
-8. 重构后再次确保全量测试为绿灯
+2. 判断它属于 `deterministic code` 还是 `LLM behavior`
+3. `deterministic code`：先添加或修改测试，让测试表达这个行为
+4. `deterministic code`：在不改实现的情况下先运行测试，确认失败
+5. 再修改实现代码或评测相关逻辑
+6. `deterministic code`：先回跑刚才失败的测试
+7. 如果涉及模型行为，运行评测并做人工复核
+8. 再跑全量测试
+9. 如果需要，再做小幅重构
+10. 重构后再次确保相关验证仍然有效
 
 ## Red-Green-Refactor
 
@@ -63,6 +108,8 @@
 - API 改动优先补端到端或路由级测试
 - service 逻辑改动优先补 service 测试
 - 文本处理、路径处理、边界条件优先补小而准的单元测试
+- prompt / 回答质量 / 本地模型表现改动，默认先跑评测，不要求为每一道题都补 mock 单元测试
+- 只有当某类 LLM 错误稳定复现且可程序化约束时，才值得补单元测试锁住
 
 测试通过不代表可以省略人工检查，但没有测试的功能默认不算完成。
 
@@ -84,9 +131,10 @@
 
 一次开发任务默认只有在下面条件都满足时才算完成:
 
-- 新行为已经被测试表达
-- 测试先红过
+- `deterministic code` 的新行为已经被测试表达
+- `deterministic code` 的测试先红过
 - 相关测试已经转绿
+- 如果涉及 LLM behavior，已经完成至少一轮评测与人工复核
 - 全量测试为绿灯
 - 必要的 README / CHANGELOG / 开发文档已经同步
 
@@ -101,6 +149,7 @@ source .venv/bin/activate
 pytest
 pytest tests/test_api_e2e.py
 pytest tests/test_search.py
+python scripts/evaluate.py run
 ```
 
 开发 API 时常用:

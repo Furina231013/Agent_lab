@@ -1117,3 +1117,1137 @@ A1 / A2
 
 **error_type_hint**
 A1 / A3
+
+---
+
+## 51
+
+**question**
+为什么目录路径错误会被归为 I1，而不是 I3？
+
+**expected_source_section**
+3.2 导入路径规则
+8.1 I 类：导入错误
+
+**expected_key_points**
+
+* 目录路径问题是导入目标不明确
+* I1 对应导入目标不明确
+* I3 对应文件类型不支持
+* 两者不是同一种错误
+
+**reference_answer**
+目录路径错误会被归为 I1，因为它的问题在于“导入目标不明确”，而不是文件类型不支持。I3 对应的是 `.docx`、`.html`、`.csv` 或图片文件这类不支持的类型错误。
+
+**error_type_hint**
+R2 / A2
+
+---
+
+## 52
+
+**question**
+如果导入的是一个没有可提取文本层的 PDF，这更接近“文件类型不支持”还是“空文本导入失败”？
+
+**expected_source_section**
+3.1 支持的文件类型
+8.1 I 类：导入错误
+
+**expected_key_points**
+
+* PDF 本身是支持类型
+* 不属于 I3
+* 没有可提取文本时是 I2
+* I2 = 空文本导入失败
+
+**reference_answer**
+这更接近“空文本导入失败”。因为 PDF 本身是支持的文件类型，不属于 I3；只有在 PDF 没有可提取文本时，才会被标记为 I2。
+
+**error_type_hint**
+A1 / A2
+
+---
+
+## 53
+
+**question**
+Source Unit、Segment 和 Evidence Block 三者的关系是什么？
+
+**expected_source_section**
+2.1 Source Unit
+2.2 Segment
+2.3 Evidence Block
+
+**expected_key_points**
+
+* Source Unit 是原始资料单元
+* Segment 是从 Source Unit 切出来的最小检索单元
+* Evidence Block 来自某个 Segment
+* 不是所有 Segment 都会成为 Evidence Block
+
+**reference_answer**
+Source Unit 是原始资料单元；Segment 是从 Source Unit 中切出来的最小检索单元；Evidence Block 则是最终送入回答阶段的结果块，必须来自某个 Segment，但不是所有 Segment 都会成为 Evidence Block。
+
+**error_type_hint**
+A1 / R1
+
+---
+
+## 54
+
+**question**
+为什么说目录本身不是 Source Unit？
+
+**expected_source_section**
+2.1 Source Unit
+3.2 导入路径规则
+
+**expected_key_points**
+
+* Source Unit 是可独立导入的原始资料单元
+* 目录里的文件需要逐个识别
+* 目录路径不能直接作为导入目标
+* 目录只是一组待识别对象，不是单个资料单元
+
+**reference_answer**
+目录本身不是 Source Unit，因为 Source Unit 必须是可以独立导入的原始资料单元。目录中的文件需要被逐个识别后，每个文件才算独立 Source Unit；同时系统也要求导入路径必须指向具体文件。
+
+**error_type_hint**
+R1 / A2
+
+---
+
+## 55
+
+**question**
+Response Frame 为什么不能写成自由散文式输出？
+
+**expected_source_section**
+2.5 Response Frame
+7.1 Response Frame 固定结构
+
+**expected_key_points**
+
+* Response Frame 是固定输出结构
+* 所有最终回答都必须按它组织
+* 不能自由散文式输出
+* 必须包含 4 个部分
+
+**reference_answer**
+因为 Response Frame 被定义为回答阶段的固定输出结构，所有最终回答都必须按这个结构组织，而不是自由散文式输出。它要求固定包含结论、依据、来源和不确定性说明这 4 个部分。
+
+**error_type_hint**
+A1 / A2
+
+---
+
+## 56
+
+**question**
+Explain 模式虽然优先 V-Search，为什么仍然不能跳过 K-Search？
+
+**expected_source_section**
+5.1 一级检索策略
+5.2 双路召回规则
+
+**expected_key_points**
+
+* Explain 模式优先 V-Search
+* 但系统必须执行双路召回
+* 不能因为优先级高就跳过另一条检索链路
+
+**reference_answer**
+Explain 模式虽然优先执行 V-Search，但仍然不能跳过 K-Search，因为系统要求无论优先级如何都必须执行双路召回。
+
+**error_type_hint**
+R2 / A2
+
+---
+
+## 57
+
+**question**
+为什么“合并后最多保留 7 个候选块”不等于“回答阶段会使用 7 个 Evidence Block”？
+
+**expected_source_section**
+5.2 双路召回规则
+6.1 Evidence Block 选取数量
+
+**expected_key_points**
+
+* 7 个是重排前候选上限
+* Evidence Block 是进入回答阶段的块
+* 默认进入回答阶段的是 3 个
+* 只有特定 Explain 条件下才允许扩到 4 个
+
+**reference_answer**
+因为“最多保留 7 个候选块”说的是进入重排阶段的候选上限，而不是最终进入回答阶段的 Evidence Block 数量。真正进入回答阶段的默认是 3 个，只有满足条件的 Explain 模式才允许扩到 4 个。
+
+**error_type_hint**
+R2 / A2
+
+---
+
+## 58
+
+**question**
+如果标题命中了问题关键词，但标题长度超过 24 个字符，还能触发标题加权吗？
+
+**expected_source_section**
+5.4 标题加权
+
+**expected_key_points**
+
+* 不能只看关键词命中
+* 还要求标题长度不超过 24 个字符
+* 超过 24 个字符就不满足显著相关定义
+
+**reference_answer**
+不能。标题加权除了要求标题命中至少一个问题关键词，还要求标题长度不超过 24 个字符。超过这个长度，就不满足文档定义的“显著相关”条件。
+
+**error_type_hint**
+A1 / A2
+
+---
+
+## 59
+
+**question**
+如果两个高度相似的候选块来自不同 Source Unit，会不会按“文本重叠超过 70%”直接去重？
+
+**expected_source_section**
+5.3 重排前去重
+
+**expected_key_points**
+
+* 不会直接按该规则去重
+* 去重规则要求来自同一 Source Unit
+* 70% 重叠只是其中一个条件
+
+**reference_answer**
+不会。文档规定的去重条件要求两个候选块既来自同一 Source Unit，又满足文本重叠超过 70%；如果来源不同，就不满足这条去重规则。
+
+**error_type_hint**
+A1 / A2
+
+---
+
+## 60
+
+**question**
+v1.0 计划把日志单块上限改成 24 行，这个值现在能不能直接拿来回答当前规则？
+
+**expected_source_section**
+13. 版本说明
+4.4 日志材料例外
+
+**expected_key_points**
+
+* 不能直接拿来回答当前规则
+* 24 行是计划版本
+* 还未生效
+* 当前生效值仍然是 30 行
+
+**reference_answer**
+不能。24 行只是 v1.0 的计划规则，当前尚未生效；现在回答当前规则时，仍应使用 30 行这个生效值。
+
+**error_type_hint**
+A1 / A3 / R2
+
+---
+
+## 61
+
+**question**
+如果问题是“哪个参数是默认值”，为什么更接近 Lookup，而不是 Explain？
+
+**expected_source_section**
+2.4 Query Mode
+7.2 Lookup 模式输出要求
+
+**expected_key_points**
+
+* “哪个参数”“默认值”属于确定事实查找
+* 这类问题默认归为 Lookup
+* Lookup 更适合直接给明确事实
+
+**reference_answer**
+因为“哪个参数是默认值”属于确定事实查找。文档明确说这类表达默认归为 Lookup，而 Lookup 模式也要求优先给出明确事实。
+
+**error_type_hint**
+R2 / A2
+
+---
+
+## 62
+
+**question**
+如果问题问“流程如何工作”，为什么不应该按 Lookup 的回答风格来组织？
+
+**expected_source_section**
+2.4 Query Mode
+7.2 Lookup 模式输出要求
+7.3 Explain 模式输出要求
+
+**expected_key_points**
+
+* “流程如何工作”默认归为 Explain
+* Explain 先给结论再解释原因或机制
+* Lookup 更偏确定事实的短答案
+
+**reference_answer**
+因为“流程如何工作”默认归为 Explain，而 Explain 模式要求先给简洁结论，再解释原因或机制。Lookup 更适合确定事实查找，不适合把流程类问题压成短事实回答。
+
+**error_type_hint**
+R2 / A2
+
+---
+
+## 63
+
+**question**
+如果 Explain 模式下前 3 个块都来自同一个 Source Unit，会不会自动扩展到 4 个 Evidence Block？
+
+**expected_source_section**
+6.1 Evidence Block 选取数量
+12.1 “Explain 模式一定比 Lookup 模式用更多上下文”
+
+**expected_key_points**
+
+* 不会自动扩展
+* Explain 只是更有机会扩展
+* 还要求前 3 个块来自至少 2 个不同 Source Unit
+
+**reference_answer**
+不会。Explain 模式只是更有机会扩展到 4 个 Evidence Block，但前提是前 3 个块分属至少 2 个不同 Source Unit；如果都来自同一个 Source Unit，就不满足扩展条件。
+
+**error_type_hint**
+A1 / R2
+
+---
+
+## 64
+
+**question**
+如果前 3 个候选块最高分只有 0.39，但 Evidence Block 数量有 3 个，系统是否仍应触发降级？
+
+**expected_source_section**
+9.1 何时触发降级
+
+**expected_key_points**
+
+* 仍应触发降级
+* 因为最高分低于 0.42 已满足降级条件
+* 不需要同时满足全部条件
+
+**reference_answer**
+是的，仍应触发降级。因为“前 3 个候选块最高分低于 0.42”本身就是独立的降级条件之一，不需要再同时满足其他条件。
+
+**error_type_hint**
+A1 / A2
+
+---
+
+## 65
+
+**question**
+如果 Lookup 模式触发了降级，系统还能不能给候选事实？应该怎么标记？
+
+**expected_source_section**
+9.2 降级后的行为
+9.3 特别说明
+
+**expected_key_points**
+
+* 还能给候选事实
+* 仅限最接近材料的候选事实
+* 必须明确标记为未确认
+
+**reference_answer**
+可以。若是 Lookup 模式触发降级，系统仍然必须给出最接近材料的候选事实，但必须明确标记为“未确认”。
+
+**error_type_hint**
+A2 / F2
+
+---
+
+## 66
+
+**question**
+为什么“应降级却未降级”属于 F1，而不是 A1？
+
+**expected_source_section**
+8.5 F 类：回退错误
+9.1 何时触发降级
+
+**expected_key_points**
+
+* F1 是回退机制错误
+* 问题在于该降级却没有降级
+* 不只是事实本身答错
+
+**reference_answer**
+因为这类问题的核心不是单条事实答错，而是系统在回退机制上出了错：明明满足降级条件，却没有触发降级。因此它属于 F1，而不是 A1。
+
+**error_type_hint**
+R2 / A2
+
+---
+
+## 67
+
+**question**
+如果多个来源冲突且无法判断哪个更可信，为什么系统应该降级，而不是自己合并出一个答案？
+
+**expected_source_section**
+6.3 冲突处理规则
+7.4 禁止行为
+9.1 何时触发降级
+
+**expected_key_points**
+
+* 冲突时不得强行合并为单一结论
+* 不能凭常识补全或替代来源内容
+* 无法判断哪个来源更可信时应触发降级
+
+**reference_answer**
+因为文档明确规定冲突时不得强行合并为单一结论，也不能凭常识补全来源内容；如果又无法判断哪个来源更可信，就满足了降级条件，应触发降级而不是自行合并答案。
+
+**error_type_hint**
+R2 / A3
+
+---
+
+## 68
+
+**question**
+为什么上下文超预算时不能直接删掉标题？
+
+**expected_source_section**
+6.2 长度预算
+12.3 “上下文超出预算时可以直接删标题”
+
+**expected_key_points**
+
+* 标题行不允许被裁掉
+* 标题属于保留信息
+* 直接删标题是常见误解
+
+**reference_answer**
+因为标题行属于保留信息，长度预算规则明确规定“不能裁掉标题行”。文档还专门把“超预算时可以直接删标题”列为常见误解。
+
+**error_type_hint**
+A1 / A2
+
+---
+
+## 69
+
+**question**
+为什么错误码标题即使很短，也可能被单独保留下来？
+
+**expected_source_section**
+4.3 短段合并规则
+
+**expected_key_points**
+
+* 一般短段会与下一段合并
+* 但错误码标题属于例外项
+* 因此可以单独作为 Segment
+
+**reference_answer**
+因为短段合并规则虽然规定小于 120 字符的段落通常不单独成段，但错误码标题被列为例外项，所以即使很短，也可以单独作为 Segment。
+
+**error_type_hint**
+A1 / A2
+
+---
+
+## 70
+
+**question**
+如果日志块超过 30 行，系统应该怎么继续切？
+
+**expected_source_section**
+4.4 日志材料例外
+
+**expected_key_points**
+
+* 日志先按时间块切分
+* 单块上限 30 行
+* 超过 30 行后按错误堆栈边界切开
+
+**reference_answer**
+日志材料先按时间块切分，单块上限为 30 行；如果某块超过 30 行，就要再按错误堆栈边界切开。
+
+**error_type_hint**
+A1 / R1
+
+---
+
+## 71
+
+**question**
+如果同一个文件在 24 小时内再次导入，且差异只有 3%，系统会立即覆盖旧索引吗？
+
+**expected_source_section**
+3.3 重复导入规则
+
+**expected_key_points**
+
+* 不会立即覆盖旧索引
+* 会先做内容摘要比对
+* 3% 低于 5%
+* 会记为重复导入
+
+**reference_answer**
+不会。24 小时内再次导入时，系统不会立即覆盖旧索引，而是先做内容摘要比对。差异 3% 低于 5%，因此会记为“重复导入”。
+
+**error_type_hint**
+A1 / A2
+
+---
+
+## 72
+
+**question**
+如果同一个文件在 24 小时内再次导入，且字符级差异是 8%，系统会怎么记录？
+
+**expected_source_section**
+3.3 重复导入规则
+
+**expected_key_points**
+
+* 仍然先做摘要比对
+* 8% 高于 5%
+* 记为更新导入
+
+**reference_answer**
+系统会先做内容摘要比对。因为 8% 高于 5%，所以会记录为“更新导入”。
+
+**error_type_hint**
+A1
+
+---
+
+## 73
+
+**question**
+如果同一个文件在 30 小时后再次导入，文档有没有明确说明仍然适用那套 5% 差异规则？
+
+**expected_source_section**
+3.3 重复导入规则
+
+**expected_key_points**
+
+* 文档只明确 24 小时内
+* 对 30 小时后未明示
+* 不能外推
+
+**reference_answer**
+没有。文档明确写的是“24 小时内被重复导入”时适用这套 5% 差异规则；对 30 小时后的情况，当前文档没有明确说明，不能直接外推。
+
+**error_type_hint**
+A2 / R2
+
+---
+
+## 74
+
+**question**
+如果纯检索耗时 0.9 秒，是否就一定表示系统违反了强制 SLA？
+
+**expected_source_section**
+10.2 查询延迟目标
+
+**expected_key_points**
+
+* 不一定
+* 0.8 秒是目标值
+* 不是强制 SLA
+
+**reference_answer**
+不一定。文档把纯检索小于 0.8 秒定义为目标延迟，而不是强制 SLA，所以超过目标值不等于自动违反强制 SLA。
+
+**error_type_hint**
+A1 / A2
+
+---
+
+## 75
+
+**question**
+如果一次导入 18 个 Source Unit，且路径都正确，系统应该拒绝还是提示？
+
+**expected_source_section**
+10.1 文档导入约束
+
+**expected_key_points**
+
+* 不会强制拒绝
+* 应提示建议分批导入
+* 15 是建议上限
+
+**reference_answer**
+系统不会强制拒绝，而应提示“建议分批导入”。因为 15 个 Source Unit 是建议上限，不是硬性拒绝阈值。
+
+**error_type_hint**
+A1 / A2
+
+---
+
+## 76
+
+**question**
+如果一个段落只有 100 字符，但它是参数表标题，它会被如何处理？
+
+**expected_source_section**
+4.3 短段合并规则
+
+**expected_key_points**
+
+* 虽然小于 120 字符
+* 但参数表标题属于例外项
+* 可以单独作为 Segment
+
+**reference_answer**
+它可以单独作为 Segment。因为虽然长度只有 100 字符，小于短段阈值 120，但参数表标题属于文档列出的例外项。
+
+**error_type_hint**
+A1 / A2
+
+---
+
+## 77
+
+**question**
+如果一个段落只有 110 字符，而且不是任何标题例外项，系统应该怎么切？
+
+**expected_source_section**
+4.3 短段合并规则
+
+**expected_key_points**
+
+* 小于 120 字符
+* 不属于例外项
+* 应与下一段合并
+
+**reference_answer**
+它不应单独作为 Segment，而应与下一段合并。因为它小于 120 字符，而且不属于参数表标题、错误码标题或特殊告警标题这些例外项。
+
+**error_type_hint**
+A1
+
+---
+
+## 78
+
+**question**
+当前版本是否已经支持 OCR 来处理空文本 PDF？
+
+**expected_source_section**
+3.1 支持的文件类型
+13. 版本说明
+
+**expected_key_points**
+
+* 当前版本不做 OCR
+* OCR 支持尚未纳入本版本
+
+**reference_answer**
+没有。当前版本处理 PDF 只提取文本层，不做 OCR；同时版本说明也明确写了 OCR 支持尚未纳入本版本。
+
+**error_type_hint**
+A1 / A3
+
+---
+
+## 79
+
+**question**
+目录、文件和 Source Unit 三者之间应该怎么理解？
+
+**expected_source_section**
+2.1 Source Unit
+3.2 导入路径规则
+
+**expected_key_points**
+
+* 文件可以成为 Source Unit
+* 目录本身不是 Source Unit
+* 导入路径应指向具体文件
+* 目录中的文件被逐个识别后才各自成为 Source Unit
+
+**reference_answer**
+文件可以成为 Source Unit，但目录本身不是。系统要求导入路径指向具体文件，目录中的文件只有被逐个识别后，才会分别成为独立的 Source Unit。
+
+**error_type_hint**
+R1 / A2
+
+---
+
+## 80
+
+**question**
+“优先执行 K-Search” 和 “只执行 K-Search” 这两个说法为什么不一样？
+
+**expected_source_section**
+5.1 一级检索策略
+5.2 双路召回规则
+
+**expected_key_points**
+
+* 优先执行只是优先级
+* 不代表只执行这一条
+* 系统要求双路召回
+
+**reference_answer**
+“优先执行 K-Search” 只说明检索优先级，不代表只执行关键词检索。文档同时要求系统必须执行双路召回，因此即便 Lookup 优先 K-Search，也仍然要执行 V-Search。
+
+**error_type_hint**
+A2 / R2
+
+---
+
+## 81
+
+**question**
+为什么不能说“系统默认会把 7 个候选都送进回答阶段”？
+
+**expected_source_section**
+5.2 双路召回规则
+6.1 Evidence Block 选取数量
+
+**expected_key_points**
+
+* 7 是候选块上限
+* 不是默认 Evidence Block 数量
+* 默认进入回答阶段的是 3 个
+
+**reference_answer**
+因为 7 只是重排前候选块的上限，不是默认送进回答阶段的数量。进入回答阶段的 Evidence Block 默认只有 3 个。
+
+**error_type_hint**
+A2 / R2
+
+---
+
+## 82
+
+**question**
+如果 K-Search 返回 4 个、V-Search 返回 6 个，为什么最终不是一定保留 10 个？
+
+**expected_source_section**
+5.2 双路召回规则
+5.3 重排前去重
+
+**expected_key_points**
+
+* 合并后最多只保留 7 个
+* 还可能先去重
+* 所以不会固定保留 10 个
+
+**reference_answer**
+因为双路结果合并后最多只保留 7 个候选块进入重排阶段，而且在这之前还可能因为同一 Source Unit 的高重叠而被去重，所以并不会固定保留 10 个。
+
+**error_type_hint**
+A1 / R2
+
+---
+
+## 83
+
+**question**
+如果标题命中了问题关键词，但命中发生在正文里而不是标题本身，还能触发标题加权吗？
+
+**expected_source_section**
+5.4 标题加权
+
+**expected_key_points**
+
+* 标题加权要求标题显著相关
+* 显著相关定义的是标题命中关键词
+* 只在正文命中不能算标题加权条件
+
+**reference_answer**
+不能直接算作标题加权。因为文档定义的“显著相关”要求是标题本身命中至少一个问题关键词，而不是正文命中关键词。
+
+**error_type_hint**
+A2 / R1
+
+---
+
+## 84
+
+**question**
+如果 Explain 模式满足扩展条件能到 4 个块，这是否意味着 Lookup 在特殊情况下也能扩到 4 个？
+
+**expected_source_section**
+6.1 Evidence Block 选取数量
+
+**expected_key_points**
+
+* 不意味着 Lookup 也能扩到 4 个
+* 文档只把扩展条件给了 Explain 模式
+
+**reference_answer**
+不意味着。文档只说明在特定条件下 Explain 模式可以扩展到 4 个 Evidence Block，并没有把这项扩展规则赋给 Lookup 模式。
+
+**error_type_hint**
+A1 / A2
+
+---
+
+## 85
+
+**question**
+如果系统把旧版本规则误写成当前规则，违反了哪类禁止行为？
+
+**expected_source_section**
+7.4 禁止行为
+13. 版本说明
+
+**expected_key_points**
+
+* 违反“将旧版本规则误写成当前规则”
+* 计划版本不能当作当前生效规则
+
+**reference_answer**
+这直接违反了回答阶段的禁止行为之一：将旧版本规则误写成当前规则。像 v1.0 计划中的 24 行规则，就不能被写成当前已经生效。
+
+**error_type_hint**
+A1 / A3
+
+---
+
+## 86
+
+**question**
+把材料中没有的参数靠常识补上，文档是怎么明确禁止的？
+
+**expected_source_section**
+7.4 禁止行为
+
+**expected_key_points**
+
+* 明确禁止根据常识补全材料中不存在的参数
+
+**reference_answer**
+文档在“禁止行为”中明确写了：禁止根据常识补全材料中不存在的参数。
+
+**error_type_hint**
+A1
+
+---
+
+## 87
+
+**question**
+如果系统一边说存在冲突，一边又把它们合并成单一结论，这违反了哪些规则？
+
+**expected_source_section**
+6.3 冲突处理规则
+7.4 禁止行为
+
+**expected_key_points**
+
+* 违反冲突处理规则
+* 冲突时不得强行合并为单一结论
+* 也违反了忽略冲突来源的禁止行为
+
+**reference_answer**
+这同时违反了两层规则：一是冲突处理规则要求冲突时不得强行合并为单一结论；二是回答阶段禁止忽略冲突来源。
+
+**error_type_hint**
+A2 / A3
+
+---
+
+## 88
+
+**question**
+“目录路径错误”“文件类型不支持”“空文本导入失败”分别对应 I1、I3、I2 中的哪一个？
+
+**expected_source_section**
+3.1 支持的文件类型
+3.2 导入路径规则
+8.1 I 类：导入错误
+
+**expected_key_points**
+
+* 目录路径错误 = I1
+* 文件类型不支持 = I3
+* 空文本导入失败 = I2
+
+**reference_answer**
+目录路径错误对应 I1，文件类型不支持对应 I3，空文本导入失败对应 I2。
+
+**error_type_hint**
+A1
+
+---
+
+## 89
+
+**question**
+如果文档里没有明确说明某个参数，系统能不能根据常见做法自己补一个默认值？
+
+**expected_source_section**
+7.4 禁止行为
+9.2 降级后的行为
+
+**expected_key_points**
+
+* 不能
+* 禁止根据常识补全材料中不存在的参数
+* 应该改为更保守的说明或降级
+
+**reference_answer**
+不能。文档明确禁止根据常识补全材料中不存在的参数；如果材料没有明确给出，系统应转向更保守的说明，必要时触发降级，而不是自行编造默认值。
+
+**error_type_hint**
+A2 / F2
+
+---
+
+## 90
+
+**question**
+如果问题同时问“默认是多少”和“什么条件下会变化”，回答为什么不能只给一个数值？
+
+**expected_source_section**
+6.1 Evidence Block 选取数量
+7.2 Lookup 模式输出要求
+7.3 Explain 模式输出要求
+
+**expected_key_points**
+
+* 这种问题有两个子问题
+* 不能只回答数值
+* 还要回答变化条件
+
+**reference_answer**
+因为这类问题同时包含“默认值”和“变化条件”两个子问题。如果只给一个数值，就会漏掉条件部分，回答不完整。
+
+**error_type_hint**
+A2 / R2
+
+---
+
+## 91
+
+**question**
+文档有没有说明多节点部署下的索引刷新策略？
+
+**expected_source_section**
+1. 文档目的
+10.3 索引刷新规则
+
+**expected_key_points**
+
+* 没有说明
+* 文档只适用于单机部署模式
+* 不涉及多节点同步
+
+**reference_answer**
+没有。文档一开始就说明它适用于单机部署模式，不涉及多节点同步，因此没有定义多节点部署下的索引刷新策略。
+
+**error_type_hint**
+R2 / F2
+
+---
+
+## 92
+
+**question**
+如果是图片文件先经过 OCR 再转成文本，当前版本有没有定义这条正式处理流程？
+
+**expected_source_section**
+3.1 支持的文件类型
+13. 版本说明
+
+**expected_key_points**
+
+* 当前版本没有定义这条正式流程
+* 图片文件不支持
+* OCR 支持尚未纳入本版本
+
+**reference_answer**
+没有。当前版本不支持图片文件，同时 OCR 支持也尚未纳入本版本，因此文档没有定义这条正式处理流程。
+
+**error_type_hint**
+A2 / F2
+
+---
+
+## 93
+
+**question**
+文档有没有给出 K-Search 和 V-Search 的具体打分公式？
+
+**expected_source_section**
+5.1 一级检索策略
+5.2 双路召回规则
+
+**expected_key_points**
+
+* 没有给出具体打分公式
+* 只定义了检索器角色、优先级和召回数量
+
+**reference_answer**
+没有。文档只定义了 K-Search 和 V-Search 的角色、优先级和默认召回数量，没有给出具体打分公式。
+
+**error_type_hint**
+R2 / F2
+
+---
+
+## 94
+
+**question**
+文档有没有明确规定 24 小时外再次导入时一定会被视为全新文件？
+
+**expected_source_section**
+3.3 重复导入规则
+
+**expected_key_points**
+
+* 没有明确规定
+* 文档只明确 24 小时内的处理规则
+* 24 小时外不能直接外推
+
+**reference_answer**
+没有。文档只明确规定了 24 小时内重复导入时的处理方式，并没有明确写出 24 小时外一定会被视为全新文件，因此不能直接外推。
+
+**error_type_hint**
+A2 / F2
+
+---
+
+## 95
+
+**question**
+文档有没有说明在来源冲突时，系统要用什么标准判断“哪个来源更可信”？
+
+**expected_source_section**
+6.3 冲突处理规则
+9.1 何时触发降级
+
+**expected_key_points**
+
+* 没有给出具体判断标准
+* 只说明如果无法判断哪个来源更可信，应触发降级
+
+**reference_answer**
+没有。文档没有给出“来源可信度判断标准”的具体方法，只说明如果存在明显冲突且无法判断哪个来源更可信，就应触发降级。
+
+**error_type_hint**
+R2 / F2
+
+---
+
+## 96
+
+**question**
+文档有没有明确说明 Explain 模式在降级后还能不能像 Lookup 一样给候选事实？
+
+**expected_source_section**
+9.2 降级后的行为
+9.3 特别说明
+
+**expected_key_points**
+
+* 没有明确说明 Explain 也能这样做
+* 文档只特别说明了 Lookup 模式
+
+**reference_answer**
+没有明确说明。文档在特别说明中只明确了 Lookup 模式触发降级后仍要给出“最接近材料的候选事实”，并没有把这一条同样扩展到 Explain 模式。
+
+**error_type_hint**
+A2 / F2
+
+---
+
+## 97
+
+**question**
+文档有没有说明标题加权除了 0.08 之外还能不能叠加、或者存在更高上限？
+
+**expected_source_section**
+5.4 标题加权
+
+**expected_key_points**
+
+* 没有说明叠加规则
+* 没有说明更高上限
+* 只明确增加 0.08 的排序分
+
+**reference_answer**
+没有。文档只明确说标题加权会增加 0.08 的排序分，并没有说明是否可以叠加，也没有给出更高上限。
+
+**error_type_hint**
+R2 / F2
+
+---
+
+## 98
+
+**question**
+如果一个短段正好出现在文末，后面已经没有“下一段”，文档有没有说明应该怎么合并？
+
+**expected_source_section**
+4.3 短段合并规则
+
+**expected_key_points**
+
+* 没有明确说明文末短段的特殊处理
+* 文档只写了“与下一段合并”
+
+**reference_answer**
+没有明确说明。文档只规定普通短段应与下一段合并，但没有单独定义“文末短段没有下一段时”的特殊处理方式。
+
+**error_type_hint**
+R2 / F2
+
+---
+
+## 99
+
+**question**
+文档有没有解释“同一分钟”在跨时区日志里应该怎么计算？
+
+**expected_source_section**
+4.4 日志材料例外
+
+**expected_key_points**
+
+* 没有解释跨时区计算方式
+* 只说明同一分钟内连续日志优先视为同一块
+
+**reference_answer**
+没有。文档只说明“同一分钟内连续日志优先视为同一块”，并没有解释在跨时区日志场景下应如何计算“同一分钟”。
+
+**error_type_hint**
+R2 / F2
+
+---
+
+## 100
+
+**question**
+文档有没有说明多用户权限会在 v1.0 就纳入？
+
+**expected_source_section**
+13. 版本说明
+
+**expected_key_points**
+
+* 没有说明
+* 当前只明确多用户权限尚未纳入本版本
+* v1.0 已明确计划的是日志单块上限改为 24 行
+
+**reference_answer**
+没有。文档只明确说明多用户权限尚未纳入当前版本；对 v1.0，已明确写出的计划规则只有“日志类 Source Unit 的单块上限从 30 行改为 24 行”，并没有说明多用户权限会在 v1.0 纳入。
+
+**error_type_hint**
+R2 / F2

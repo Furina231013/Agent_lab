@@ -70,6 +70,8 @@ A2 / R1
     assert payload["cases"][1]["id"] == "test-md-002"
     assert payload["cases"][0]["source_paths"] == ["data/raw/test.md"]
     assert payload["cases"][1]["expected_answer_points"] == ["第三条"]
+    assert payload["cases"][0]["question_types"] == ["事实查找"]
+    assert payload["cases"][1]["question_types"] == ["事实查找"]
 
 
 def test_build_eval_dataset_script_defaults_to_project_eval_files(

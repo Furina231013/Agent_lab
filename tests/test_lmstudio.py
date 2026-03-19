@@ -125,13 +125,13 @@ def test_build_user_prompt_adds_question_type_specific_hints() -> None:
         ],
     )
 
-    assert "结论第一句必须直接写“属于 Lookup”或“属于 Explain”" in mode_prompt
+    assert "结论第一句先直接给出所属类别" in mode_prompt
     assert "结论第一句必须直接写“会”或“不会”" in yes_no_prompt
     assert "必须同时回答数量和条件两个子问题" in multi_part_prompt
     assert "不要把表达方式题答成具体事实值" in style_prompt
-    assert "必须同时覆盖 Lookup 和 Explain 两边" in paired_prompt
-    assert "先判断文档是否明确覆盖范围外" in range_prompt
-    assert "至少覆盖：保留冲突、提示不一致、禁止强行合并" in conflict_prompt
+    assert "必须把各选项分别写清楚" in paired_prompt
+    assert "如果问题在问范围外或对比条件" in range_prompt
+    assert "至少要覆盖：保留冲突、提示来源不一致、不要强行合并" in conflict_prompt
 
 
 def test_sanitize_answer_splits_inline_structured_sections() -> None:
@@ -222,7 +222,7 @@ def test_answer_validation_issues_ignore_section_number_for_exception_case() -> 
         ),
     )
 
-    assert any("例外项" in issue for issue in issues)
+    assert any("例外条件" in issue or "限定条件" in issue for issue in issues)
     assert not any("4.3" in issue for issue in issues)
 
 
@@ -245,7 +245,7 @@ def test_answer_validation_issues_flags_range_outside_as_not_applicable() -> Non
         ),
     )
 
-    assert any("确定不适用" in issue or "范围外" in issue for issue in issues)
+    assert any("未明示" in issue or "边界和结论冲突" in issue or "范围" in issue for issue in issues)
 
 
 def test_answer_validation_issues_require_hard_cut_rule_completeness() -> None:
@@ -270,8 +270,214 @@ def test_answer_validation_issues_require_hard_cut_rule_completeness() -> None:
         ),
     )
 
-    assert any("段落边界" in issue for issue in issues)
-    assert any("超过 420" in issue or "强制截断" in issue for issue in issues)
+    assert any("触发条件" in issue or "例外边界" in issue for issue in issues)
+
+
+def test_answer_validation_issues_require_budget_sequence_completeness() -> None:
+    issues = _answer_validation_issues(
+        "回答阶段的上下文总预算是多少？如果超限，裁剪顺序是什么？",
+        [
+            {
+                "rank": 1,
+                "source": "data/raw/test.md",
+                "chunk_id": "chunk-budget",
+                "score": 0.9,
+                "text": (
+                    "回答阶段上下文总预算默认为 1600 字符。"
+                    "如果超过预算，先裁剪最低分块；若仍超限，再裁剪每个块的尾部冗余句；"
+                    "不允许裁掉标题行。"
+                ),
+            }
+        ],
+        (
+            "结论：回答阶段上下文总预算为1600字符。\n"
+            "依据：6.2 长度预算中明确“回答阶段上下文总预算默认为1600字符”。\n"
+            "边界：当前材料已明确。"
+        ),
+    )
+
+    assert any("最低分块" in issue for issue in issues)
+    assert any("尾部冗余句" in issue for issue in issues)
+    assert any("标题行" in issue for issue in issues)
+
+
+def test_answer_validation_issues_require_query_mode_classification_for_query_mode_question() -> None:
+    issues = _answer_validation_issues(
+        "如果用户问“为什么系统保留标题”，这类问题默认属于哪种 Query Mode？",
+        [
+            {
+                "rank": 1,
+                "source": "data/raw/test.md",
+                "chunk_id": "chunk-query-mode",
+                "score": 0.9,
+                "text": "带有“为什么”的问题通常归为 Explain 模式。",
+            }
+        ],
+        (
+            "结论：系统保留标题是因为标题是轻量语义锚点。\n"
+            "依据：标题优先规则说明标题是轻量语义锚点。\n"
+            "边界：当前材料已明确。"
+        ),
+    )
+
+    assert any("分类" in issue or "类别" in issue for issue in issues)
+
+
+def test_answer_validation_issues_require_cross_minute_boundary_answer() -> None:
+    issues = _answer_validation_issues(
+        "日志切分时，“同一分钟连续日志优先视为同一块”是什么意思？是不是跨分钟就不优先合并了？",
+        [
+            {
+                "rank": 1,
+                "source": "data/raw/test.md",
+                "chunk_id": "chunk-cross-minute",
+                "score": 0.9,
+                "text": "同一分钟内连续日志优先视为同一块，单块上限为 30 行。",
+            }
+        ],
+        (
+            "结论：会。\n"
+            "依据：日志切分规则中明确“同一分钟内连续日志优先视为同一块”。\n"
+            "边界：当前材料已明确。"
+        ),
+    )
+
+    assert any("对比范围" in issue or "已知范围" in issue or "原始范围" in issue for issue in issues)
+
+
+def test_answer_validation_issues_require_explanation_for_why_questions() -> None:
+    issues = _answer_validation_issues(
+        "如果问题是“哪个参数是默认值”，为什么更接近 Lookup，而不是 Explain？",
+        [
+            {
+                "rank": 1,
+                "source": "data/raw/test.md",
+                "chunk_id": "chunk-why",
+                "score": 0.9,
+                "text": "如果用户问题里出现“默认值”“哪个参数”之类表达，默认归为 Lookup，因为这类问题是在查找确定事实。",
+            }
+        ],
+        (
+            "结论：默认切分长度为 420 字符。\n"
+            "依据：Lookup 模式下若答案是数值或默认值，必须直接写出数值。\n"
+            "边界：当前材料已明确。"
+        ),
+    )
+
+    assert any("为什么" in issue or "解释" in issue or "原因" in issue for issue in issues)
+
+
+def test_answer_validation_issues_require_degrade_threshold_direction() -> None:
+    issues = _answer_validation_issues(
+        "如果前 3 个候选块最高分只有 0.39，但 Evidence Block 数量有 3 个，系统是否仍应触发降级？",
+        [
+            {
+                "rank": 1,
+                "source": "data/raw/test.md",
+                "chunk_id": "chunk-degrade-threshold",
+                "score": 0.9,
+                "text": "若系统满足以下任一条件，应触发降级回答：前 3 个候选块最高分低于 0.42。",
+            }
+        ],
+        (
+            "结论：不会触发降级。\n"
+            "依据：降级阈值最高分是 0.42，当前最高分为 0.39。\n"
+            "边界：当前材料已明确。"
+        ),
+    )
+
+    assert any("降级" in issue and ("0.39" in issue or "0.42" in issue or "阈值" in issue) for issue in issues)
+
+
+def test_answer_validation_issues_require_unconfirmed_marker_for_degraded_lookup_candidates() -> None:
+    issues = _answer_validation_issues(
+        "如果 Lookup 模式触发了降级，系统还能不能给候选事实？应该怎么标记？",
+        [
+            {
+                "rank": 1,
+                "source": "data/raw/test.md",
+                "chunk_id": "chunk-degrade-behavior",
+                "score": 0.9,
+                "text": "若是 Lookup 模式触发降级，系统仍然必须给出最接近材料的候选事实，但要明确标记为“未确认”。",
+            }
+        ],
+        (
+            "结论：可以给候选事实。\n"
+            "依据：Lookup 模式触发降级后，系统仍可给最接近材料的候选事实。\n"
+            "边界：当前材料已明确。"
+        ),
+    )
+
+    assert any("未确认" in issue or "标记" in issue for issue in issues)
+
+
+def test_answer_validation_issues_fail_closed_when_unspecified_answer_keeps_guessing() -> None:
+    issues = _answer_validation_issues(
+        "如果一个短段正好出现在文末，后面已经没有“下一段”，文档有没有说明应该怎么合并？",
+        [
+            {
+                "rank": 1,
+                "source": "data/raw/test.md",
+                "chunk_id": "chunk-unspecified",
+                "score": 0.9,
+                "text": "若某一段长度小于 120 字符，系统不应将其单独作为 Segment；否则应将其与下一段合并。",
+            }
+        ],
+        (
+            "结论：文档未明确说明，但文末短段可能会与上一段合并。\n"
+            "依据：文档只写了与下一段合并，因此可以推断文末短段应另行处理。\n"
+            "边界：文档未明示文末无下一段时的处理规则。"
+        ),
+    )
+
+    assert any("未明示" in issue and ("猜测" in issue or "推断" in issue or "外推" in issue) for issue in issues)
+
+
+def test_answer_validation_issues_reject_unique_claim_when_context_lists_multiple_exceptions() -> None:
+    issues = _answer_validation_issues(
+        "如果一个段落只有 100 字符，但它是参数表标题，它会被如何处理？",
+        [
+            {
+                "rank": 1,
+                "source": "data/raw/test.md",
+                "chunk_id": "chunk-exception-list",
+                "score": 0.9,
+                "text": (
+                    "若某一段长度小于 120 字符，系统不应将其单独作为 Segment，除非它是以下内容之一："
+                    "参数表标题、错误码标题、特殊告警标题。"
+                ),
+            }
+        ],
+        (
+            "结论：它会被保留为独立 Segment，因为参数表标题是唯一允许的小段例外。\n"
+            "依据：短段合并规则中把参数表标题列为可以单独保留的情况。\n"
+            "边界：当前材料已明确。"
+        ),
+    )
+
+    assert any("唯一" in issue or "多个" in issue or "例外项" in issue for issue in issues)
+
+
+def test_answer_validation_issues_require_explicit_outside_of_preferred_condition() -> None:
+    issues = _answer_validation_issues(
+        "如果两个高度相似的候选块来自不同 Source Unit，会不会按“文本重叠超过 70%”直接去重？",
+        [
+            {
+                "rank": 1,
+                "source": "data/raw/test.md",
+                "chunk_id": "chunk-scope-exclusive",
+                "score": 0.9,
+                "text": "若两个候选块来自同一 Source Unit 且文本重叠超过 70%，则只保留得分更高者。",
+            }
+        ],
+        (
+            "结论：文档未明示。\n"
+            "依据：当前规则只写了同一 Source Unit 且文本重叠超过 70% 的情况。\n"
+            "边界：文档只明确同一 Source Unit 的去重条件。"
+        ),
+    )
+
+    assert any("优先条件" in issue or "范围外" in issue or "不属于" in issue for issue in issues)
 
 
 def test_answer_validation_issues_require_source_confirmation_for_conflicts() -> None:
@@ -294,6 +500,32 @@ def test_answer_validation_issues_require_source_confirmation_for_conflicts() ->
     )
 
     assert any("结合来源进行确认" in issue for issue in issues)
+
+
+def test_answer_validation_issues_require_conflict_triads_together() -> None:
+    issues = _answer_validation_issues(
+        "如果多个 Evidence Block 之间出现冲突，系统应该怎么做？",
+        [
+            {
+                "rank": 1,
+                "source": "data/raw/test.md",
+                "chunk_id": "chunk-conflict-triad",
+                "score": 0.9,
+                "text": (
+                    "系统必须保留冲突，显式说明存在冲突，并加入固定提示语"
+                    "“当前材料存在不一致描述，请结合来源进行确认。”，不得强行合并。"
+                ),
+            }
+        ],
+        (
+            "结论：当前材料存在不一致描述，请结合来源进行确认。\n"
+            "依据：系统在这种情况下必须在最终回答中加入一句固定提示。\n"
+            "边界：当前材料已明确。"
+        ),
+    )
+
+    assert any("保留冲突" in issue for issue in issues)
+    assert any("强行合并" in issue for issue in issues)
 
 
 def test_generate_lm_studio_answer_strips_thinking_and_uses_strict_payload(
@@ -1015,6 +1247,92 @@ def test_generate_lm_studio_answer_retries_when_conflict_handling_is_incomplete(
 
     assert len(captured_payloads) == 2
     assert "不能强行合并为单一结论" in result["answer"]
+
+
+def test_generate_lm_studio_answer_can_retry_twice_for_conflict_completion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "lm_studio_model", "local-qwen")
+    monkeypatch.setattr(settings, "lm_studio_base_url", "http://127.0.0.1:1234/v1")
+
+    responses = [
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": (
+                            "结论：当前材料存在不一致描述，请结合来源进行确认。\n"
+                            "依据：材料之间存在冲突。\n"
+                            "边界：当前材料已明确。"
+                        )
+                    }
+                }
+            ]
+        },
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": (
+                            "结论：系统必须保留冲突，并提示当前材料存在不一致描述，请结合来源进行确认。\n"
+                            "依据：多个 Evidence Block 冲突时，系统必须保留冲突。\n"
+                            "边界：当前材料已明确。"
+                        )
+                    }
+                }
+            ]
+        },
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": (
+                            "结论：系统必须保留冲突，并明确提示“当前材料存在不一致描述，请结合来源进行确认。”，不得强行合并为单一结论。\n"
+                            "依据：多个 Evidence Block 冲突时，系统必须保留冲突，并禁止强行合并或凭常识替代来源内容。\n"
+                            "边界：当前材料已明确。"
+                        )
+                    }
+                }
+            ]
+        },
+    ]
+    captured_payloads: list[dict[str, object]] = []
+
+    class FakeResponse:
+        def __init__(self, payload: dict[str, object]) -> None:
+            self.payload = payload
+
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(self.payload).encode("utf-8")
+
+    def fake_urlopen(request, timeout: int):  # type: ignore[no-untyped-def]
+        captured_payloads.append(json.loads(request.data.decode("utf-8")))
+        return FakeResponse(responses[len(captured_payloads) - 1])
+
+    monkeypatch.setattr("app.services.lmstudio.urlopen", fake_urlopen)
+
+    result = generate_lm_studio_answer(
+        "如果多个 Evidence Block 之间出现冲突，系统应该怎么做？",
+        [
+            {
+                "rank": 1,
+                "source": "data/raw/test.md",
+                "chunk_id": "chunk-13b",
+                "score": 0.9,
+                "text": "系统必须保留冲突，显式说明存在冲突，并加入固定提示语“当前材料存在不一致描述，请结合来源进行确认。”，不得强行合并。",
+            }
+        ],
+    )
+
+    assert len(captured_payloads) == 3
+    assert "不得强行合并为单一结论" in result["answer"]
+    assert "当前材料存在不一致描述，请结合来源进行确认。" in result["answer"]
 
 
 def test_generate_lm_studio_answer_wraps_socket_timeout(
